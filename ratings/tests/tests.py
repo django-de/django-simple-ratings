@@ -241,3 +241,15 @@ class CustomModelRatingsTestCase(BaseRatingsTestCase):
         self.assertQuerysetEqual(self.coke.ratings.all(), [rating, rating2])
         self.assertQuerysetEqual(self.pepsi.ratings.all(), [rating3])
         self.assertQuerysetEqual(Beverage.ratings.all(), [rating, rating2, rating3])
+   
+    def test_ordering(self):
+        rating1 = self.coke.ratings.rate(self.john, 1)
+        rating2 = self.coke.ratings.rate(self.jane, -1)
+        rating3 = self.pepsi.ratings.rate(self.john, 1)
+        
+        beverages = Beverage.ratings.order_by_rating()
+        self.assertQuerysetEqual(beverages, [self.pepsi, self.coke])
+        
+        self.coke.ratings.rate(self.john, 3)
+        beverages = Beverage.ratings.order_by_rating()
+        self.assertQuerysetEqual(beverages, [self.coke, self.pepsi])

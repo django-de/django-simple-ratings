@@ -162,10 +162,26 @@ class _RatingsDescriptor(object):
         query = self.rating_model.base_kwargs(self.rated_model)
         return self.rating_model._default_manager.filter(**query)
     
+    def get_content_object_field(self):
+        opts = self.rating_model._meta
+        for virtual_field in opts.virtual_fields:
+            if virtual_field.name == 'content_object':
+                return virtual_field
+        return opts.get_field('content_object')
+    
+    @property
+    def is_gfk(self):
+        return isinstance(self.get_content_object_field(), GenericForeignKey)
+    
     def order_by_rating(self, aggregator=models.Sum, descending=True):
+        ordering = descending and '-score' or 'score'
+        if not self.is_gfk:
+            related_field = self.get_content_object_field()
+            qn = related_field.related_query_name()
+            qs = self.rated_model._default_manager.all()
+            return qs.annotate(score=models.Sum('%s__score' % qn)).order_by(ordering)
         # nasty.
         base_qs = self.all()
-        ordering = descending and '-score' or 'score'
         results = base_qs.values_list('object_id').annotate(score=aggregator('score')).order_by(ordering)
         ordered_pks = map(lambda t: t[0], results)
         objects = self.rated_model._default_manager.in_bulk(ordered_pks)
