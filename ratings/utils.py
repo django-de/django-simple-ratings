@@ -112,6 +112,9 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
 
     result = cursor.fetchone()
 
+    if not result:
+        return 0
+
     sum1, sum2, sum1_sq, sum2_sq, psum, sample_size = result
     
     num = psum - (sum1 * sum2 / sample_size)
