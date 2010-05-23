@@ -170,7 +170,7 @@ class _RatingsDescriptor(object):
     
     @property
     def is_gfk(self):
-        return isinstance(self.get_content_object_field(), GenericForeignKey)
+        return is_gfk(self.get_content_object_field())
     
     def order_by_rating(self, aggregator=models.Sum, descending=True):
         ordering = descending and '-score' or 'score'

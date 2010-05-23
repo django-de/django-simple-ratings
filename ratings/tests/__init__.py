@@ -1,1 +1,2 @@
-from ratings.tests.tests import (RatingsTestCase, CustomModelRatingsTestCase)
+from ratings.tests.tests import (RatingsTestCase, CustomModelRatingsTestCase,
+    RecommendationsTestCase)

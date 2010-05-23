@@ -266,3 +266,58 @@ class CustomModelRatingsTestCase(BaseRatingsTestCase):
         
         self.assertEqual(beverages[0].score, 2)
         self.assertEqual(beverages[1].score, 1)
+
+
+
+class RecommendationsTestCase(BaseRatingsTestCase):
+    def setUp(self):
+        super(RecommendationsTestCase, self).setUp()
+        
+        self.food_a = Food.objects.create(name='food_a')
+        self.food_b = Food.objects.create(name='food_b')
+        self.food_c = Food.objects.create(name='food_c')
+        self.food_d = Food.objects.create(name='food_d')
+        self.food_e = Food.objects.create(name='food_e')
+        self.food_f = Food.objects.create(name='food_f')
+        
+        self.user_a = User.objects.create_user('user_a', 'user_a')
+        self.user_b = User.objects.create_user('user_b', 'user_b')
+        self.user_c = User.objects.create_user('user_c', 'user_c')
+        self.user_d = User.objects.create_user('user_d', 'user_d')
+        self.user_e = User.objects.create_user('user_e', 'user_e')
+        self.user_f = User.objects.create_user('user_f', 'user_f')
+        self.user_g = User.objects.create_user('user_g', 'user_g')
+        
+        ratings_matrix = [
+            # L   Sn   Ju   Su   Yo   Nl  
+            [2.5, 3.5, 3.0, 3.5, 2.5, 3.0],
+            [3.0, 3.5, 1.5, 5.0, 3.5, 3.0],
+            [2.5, 3.0, None, 3.5, None, 4.0],
+            [None, 3.5, 3.0, 4.0, 2.5, 4.5],
+            [3.0, 4.0, 2.0, 3.0, 2.0, 3.0],
+            [3.0, 4.0, None, 5.0, 3.5, 3.0],
+            [None, 4.5, None, 4.0, 1.0, None]
+        ]
+        
+        # x-axis
+        foods = [
+            self.food_a, self.food_b, self.food_c,
+            self.food_d, self.food_e, self.food_f
+        ]
+        
+        # y-axis
+        users = [
+            self.user_a, self.user_b, self.user_c,
+            self.user_d, self.user_e, self.user_f,
+            self.user_g
+        ]
+
+        for x, food in enumerate(foods):
+            for y, user in enumerate(users):
+                if ratings_matrix[y][x]:
+                    food.ratings.rate(user, ratings_matrix[y][x])
+
+    def test_simple(self):
+        from ratings.utils import sim_euclidean_distance
+        result = sim_euclidean_distance(RatedItem.objects.all(), self.user_a, self.user_b)
+        self.assertEqual(str(result)[:5], '0.148')
