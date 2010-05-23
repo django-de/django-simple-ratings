@@ -163,11 +163,14 @@ class _RatingsDescriptor(object):
         return self.rating_model._default_manager.filter(**query)
     
     def get_content_object_field(self):
-        opts = self.rating_model._meta
-        for virtual_field in opts.virtual_fields:
-            if virtual_field.name == 'content_object':
-                return virtual_field
-        return opts.get_field('content_object')
+        if not hasattr(self, '_content_object_field'):
+            opts = self.rating_model._meta
+            for virtual_field in opts.virtual_fields:
+                if virtual_field.name == 'content_object':
+                    self._content_object_field = virtual_field
+                    return virtual_field # break out early
+            self._content_object_field = opts.get_field('content_object')
+        return self._content_object_field
     
     @property
     def is_gfk(self):
@@ -175,14 +178,33 @@ class _RatingsDescriptor(object):
     
     def order_by_rating(self, aggregator=models.Sum, descending=True):
         ordering = descending and '-score' or 'score'
+        related_field = self.get_content_object_field()
         if not self.is_gfk:
-            related_field = self.get_content_object_field()
             qn = related_field.related_query_name()
             qs = self.rated_model._default_manager.all()
             return qs.annotate(score=models.Sum('%s__score' % qn)).order_by(ordering)
         # nasty.
-        base_qs = self.all()
-        results = base_qs.values_list('object_id').annotate(score=aggregator('score')).order_by(ordering)
-        ordered_pks = map(lambda t: t[0], results)
-        objects = self.rated_model._default_manager.in_bulk(ordered_pks)
-        return [objects[pk] for pk in ordered_pks]
+        content_type = ContentType.objects.get_for_model(self.rated_model)
+        
+        # collect the params we'll be using
+        params = (
+            aggregator.name, # the function that's doing the aggregation
+            self.rating_model._meta.db_table, # table holding rated item info
+            related_field.ct_field, # the content_type field on the GFK
+            content_type.pk, # the content_type id we need to match
+            related_field.fk_field, # the object_id field on the GFK
+            self.rated_model._meta.db_table, # the table and pk from the main
+            self.rated_model._meta.pk.name   # part of the query
+        )
+        
+        qs = self.rated_model._default_manager.all().extra(select={
+            'score': """
+                SELECT %s(score) AS summed_score
+                FROM %s
+                WHERE
+                    %s_id=%s AND
+                    %s=%s.%s
+            """ % params            
+        },
+        order_by=[ordering])
+        return qs

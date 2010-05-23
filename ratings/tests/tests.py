@@ -143,9 +143,15 @@ class RatingsTestCase(BaseRatingsTestCase):
         foods = Food.ratings.order_by_rating()
         self.assertQuerysetEqual(foods, [self.orange, self.apple])
         
+        self.assertEqual(foods[0].score, 1)
+        self.assertEqual(foods[1].score, 0)
+        
         self.apple.ratings.rate(self.john, 3)
         foods = Food.ratings.order_by_rating()
         self.assertQuerysetEqual(foods, [self.apple, self.orange])
+    
+        self.assertEqual(foods[0].score, 2)
+        self.assertEqual(foods[1].score, 1)
 
 class CustomModelRatingsTestCase(BaseRatingsTestCase):
     def test_add(self):
@@ -250,6 +256,12 @@ class CustomModelRatingsTestCase(BaseRatingsTestCase):
         beverages = Beverage.ratings.order_by_rating()
         self.assertQuerysetEqual(beverages, [self.pepsi, self.coke])
         
+        self.assertEqual(beverages[0].score, 1)
+        self.assertEqual(beverages[1].score, 0)
+        
         self.coke.ratings.rate(self.john, 3)
         beverages = Beverage.ratings.order_by_rating()
         self.assertQuerysetEqual(beverages, [self.coke, self.pepsi])
+        
+        self.assertEqual(beverages[0].score, 2)
+        self.assertEqual(beverages[1].score, 1)
