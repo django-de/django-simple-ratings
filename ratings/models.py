@@ -4,18 +4,34 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db import models, IntegrityError
 from django.template.defaultfilters import slugify
+from django.utils.hashcompat import sha_constructor
 
 from ratings.utils import get_content_object_field, is_gfk
 
 class RatedItemBase(models.Model):
     score = models.FloatField(default=0)
     user = models.ForeignKey(User, related_name='%(class)ss')
+    hashed = models.CharField(max_length=40, editable=False)
+
+    class Meta:
+        abstract = True
 
     def __unicode__(self):
         return "%s rated %s by %s" % (self.content_object, self.score, self.user)
     
-    class Meta:
-        abstract = True
+    def save(self, *args, **kwargs):
+        self.hashed = self.generate_hash()
+        super(RatedItemBase, self).save(*args, **kwargs)
+    
+    def generate_hash(self):
+        content_field = get_content_object_field(self)
+        if is_gfk(content_field):
+            uniq = (getattr(self, content_field.ct_field).pk,
+                    getattr(self, content_field.fk_field))
+        else:
+            uniq = getattr(self, content_field.name).pk
+        hashed = sha_constructor(str(uniq)).hexdigest()
+        return hashed
 
     @classmethod
     def lookup_kwargs(cls, instance):

@@ -108,7 +108,7 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
     }
 
     cursor = connection.cursor()
-    cursor.execute(sql % params)    
+    cursor.execute(sql % params)
 
     result = cursor.fetchone()
 
@@ -122,10 +122,43 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
     
     return num / den
 
-def top_matches(ratings_queryset, people, person, n=5, similarity=sim_pearson_correlation):
+def top_matches(ratings_queryset, people, person, n=5, 
+                similarity=sim_pearson_correlation):
     scores = [
         (similarity(ratings_queryset, person, other), other)
             for other in people if other != person]
     scores.sort()
     scores.reverse()
     return scores[:n]
+
+def recommendations(ratings_queryset, people, person,
+                    similarity=sim_pearson_correlation):
+    rating_model = ratings_queryset.model
+    
+    already_rated = ratings_queryset.filter(user=person).values_list('hashed')
+    
+    totals = {}
+    sim_sums = {}
+    
+    for other in people:
+        if other == person:
+            continue
+        
+        sim = similarity(ratings_queryset, person, other)
+        
+        if sim <= 0:
+            continue
+        
+        # now, score the items person hasn't rated yet
+        for item in ratings_queryset.filter(user=other).exclude(hashed__in=already_rated):
+            totals.setdefault(item.content_object, 0)
+            totals[item.content_object] += (item.score * sim)
+            
+            sim_sums.setdefault(item.content_object, 0)
+            sim_sums[item.content_object] += sim
+    
+    rankings = [(total / sim_sums[pk], pk) for pk, total in totals.iteritems()]
+    
+    rankings.sort()
+    rankings.reverse()
+    return rankings
