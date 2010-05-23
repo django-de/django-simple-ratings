@@ -6,15 +6,16 @@ from ratings.tests.models import Food, Beverage, BeverageRating
 
 
 class BaseRatingsTestCase(TestCase):
+    fixtures = ['ratings_testdata.json']
     def setUp(self):
-        self.apple = Food.objects.create(name='apple')
-        self.orange = Food.objects.create(name='orange')
+        self.apple = Food.objects.get(name='apple')
+        self.orange = Food.objects.get(name='orange')
         
-        self.coke = Beverage.objects.create(name='coke')
-        self.pepsi = Beverage.objects.create(name='pepsi')
+        self.coke = Beverage.objects.get(name='coke')
+        self.pepsi = Beverage.objects.get(name='pepsi')
         
-        self.john = User.objects.create_user('john', 'john@doe.com')
-        self.jane = User.objects.create_user('jane', 'jane@doe.com')
+        self.john = User.objects.get(username='john')
+        self.jane = User.objects.get(username='jane')
 
     def _sort_by_pk(self, list_or_qs):
         # decorate, sort, undecorate using the pk of the items
@@ -38,7 +39,7 @@ class RatingsTestCase(BaseRatingsTestCase):
         
         # get the rating and check that it saved correctly
         apple_rating = self.apple.ratings.all()[0]
-        self.assertEqual(unicode(apple_rating), 'apple rated 1 by john')
+        self.assertEqual(unicode(apple_rating), 'apple rated 1.0 by john')
         
         # get the rating another way and check that it works
         apple_rating_alt = self.john.rateditems.all()[0]
@@ -163,7 +164,7 @@ class CustomModelRatingsTestCase(BaseRatingsTestCase):
         
         # get the rating and check that it saved correctly
         coke_rating = self.coke.ratings.all()[0]
-        self.assertEqual(unicode(coke_rating), 'coke rated 1 by john')
+        self.assertEqual(unicode(coke_rating), 'coke rated 1.0 by john')
         
         # get the rating another way and check that it works
         coke_rating_alt = self.john.beverageratings.all()[0]

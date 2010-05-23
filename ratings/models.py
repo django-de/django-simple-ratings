@@ -7,7 +7,7 @@ from django.template.defaultfilters import slugify
 
 
 class RatedItemBase(models.Model):
-    score = models.IntegerField(default=0)
+    score = models.FloatField(default=0)
     user = models.ForeignKey(User, related_name='%(class)ss')
 
     def __unicode__(self):
