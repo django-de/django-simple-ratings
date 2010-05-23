@@ -318,6 +318,9 @@ class RecommendationsTestCase(BaseRatingsTestCase):
                     food.ratings.rate(user, ratings_matrix[y][x])
 
     def test_simple(self):
-        from ratings.utils import sim_euclidean_distance
+        from ratings.utils import sim_euclidean_distance, sim_pearson_correlation
         result = sim_euclidean_distance(RatedItem.objects.all(), self.user_a, self.user_b)
         self.assertEqual(str(result)[:5], '0.148')
+        
+        result = sim_pearson_correlation(RatedItem.objects.all(), self.user_a, self.user_b)
+        self.assertEqual(str(result)[:5], '0.396')
