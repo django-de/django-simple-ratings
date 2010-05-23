@@ -5,6 +5,7 @@ from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db import models, IntegrityError
 from django.template.defaultfilters import slugify
 
+from ratings.utils import get_content_object_field, is_gfk
 
 class RatedItemBase(models.Model):
     score = models.FloatField(default=0)
@@ -164,12 +165,7 @@ class _RatingsDescriptor(object):
     
     def get_content_object_field(self):
         if not hasattr(self, '_content_object_field'):
-            opts = self.rating_model._meta
-            for virtual_field in opts.virtual_fields:
-                if virtual_field.name == 'content_object':
-                    self._content_object_field = virtual_field
-                    return virtual_field # break out early
-            self._content_object_field = opts.get_field('content_object')
+            self._content_object_field = get_content_object_field(self.rating_model)
         return self._content_object_field
     
     @property
