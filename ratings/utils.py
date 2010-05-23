@@ -111,6 +111,7 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
     cursor.execute(sql % params)    
 
     result = cursor.fetchone()
+
     sum1, sum2, sum1_sq, sum2_sq, psum, sample_size = result
     
     num = psum - (sum1 * sum2 / sample_size)
@@ -120,3 +121,11 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
         return 0
     
     return num / den
+
+def top_matches(ratings_queryset, people, person, n=5, similarity=sim_pearson_correlation):
+    scores = [
+        (similarity(ratings_queryset, person, other), other)
+            for other in people if other != person]
+    scores.sort()
+    scores.reverse()
+    return scores[:n]

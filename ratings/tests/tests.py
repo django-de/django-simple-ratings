@@ -3,6 +3,7 @@ from django.test import TestCase
 
 from ratings.models import RatedItem
 from ratings.tests.models import Food, Beverage, BeverageRating
+from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches
 
 
 class BaseRatingsTestCase(TestCase):
@@ -300,27 +301,30 @@ class RecommendationsTestCase(BaseRatingsTestCase):
         ]
         
         # x-axis
-        foods = [
+        self.foods = [
             self.food_a, self.food_b, self.food_c,
             self.food_d, self.food_e, self.food_f
         ]
         
         # y-axis
-        users = [
+        self.users = [
             self.user_a, self.user_b, self.user_c,
             self.user_d, self.user_e, self.user_f,
             self.user_g
         ]
 
-        for x, food in enumerate(foods):
-            for y, user in enumerate(users):
+        for x, food in enumerate(self.foods):
+            for y, user in enumerate(self.users):
                 if ratings_matrix[y][x]:
                     food.ratings.rate(user, ratings_matrix[y][x])
 
     def test_simple(self):
-        from ratings.utils import sim_euclidean_distance, sim_pearson_correlation
         result = sim_euclidean_distance(RatedItem.objects.all(), self.user_a, self.user_b)
         self.assertEqual(str(result)[:5], '0.148')
         
         result = sim_pearson_correlation(RatedItem.objects.all(), self.user_a, self.user_b)
         self.assertEqual(str(result)[:5], '0.396')
+    
+    def test_matching(self):
+        results = top_matches(RatedItem.objects.all(), self.users, self.user_g, 3)
+        self.assertEqual(str(results), '[(0.99124070716192991, <User: user_a>), (0.92447345164190486, <User: user_e>), (0.89340514744156474, <User: user_d>)]')
