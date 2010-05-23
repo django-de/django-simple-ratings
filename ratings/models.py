@@ -182,7 +182,7 @@ class _RatingsDescriptor(object):
         if not self.is_gfk:
             qn = related_field.related_query_name()
             qs = self.rated_model._default_manager.all()
-            return qs.annotate(score=models.Sum('%s__score' % qn)).order_by(ordering)
+            return qs.annotate(score=aggregator('%s__score' % qn)).order_by(ordering)
         # nasty.
         content_type = ContentType.objects.get_for_model(self.rated_model)
         
