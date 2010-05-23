@@ -1,5 +1,6 @@
 from math import sqrt
 
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db import connection
 
@@ -13,16 +14,19 @@ def get_content_object_field(rating_model):
 def is_gfk(content_field):
     return isinstance(content_field, GenericForeignKey)
 
-def sim_euclidean_distance(ratings_queryset, user_a, user_b):
+def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
     rating_model = ratings_queryset.model
-    content_field = get_content_object_field(rating_model)
     
-    if is_gfk(content_field):
-        lookups = ['%s_id' % content_field.ct_field, content_field.fk_field]
+    if isinstance(factor_a, User):
+        filter_field = 'user_id'
+        match_on = 'hashed'
+        lookup_a = factor_a.pk
+        lookup_b = factor_b.pk
     else:
-        lookups = ['%s_id' % content_field.name]
-    
-    lookup_query = ' AND '.join(['r1.%(f)s = r2.%(f)s' % {'f': f} for f in lookups])
+        filter_field = 'hashed'
+        match_on = 'user_id'
+        lookup_a = rating_model(content_object=factor_a).generate_hash()
+        lookup_b = rating_model(content_object=factor_b).generate_hash()
 
     sql = """
     SELECT r1.score - r2.score AS diff
@@ -30,9 +34,9 @@ def sim_euclidean_distance(ratings_queryset, user_a, user_b):
         %(ratings_table)s AS r1,
         %(ratings_table)s AS r2
     WHERE
-        r1.user_id = %(user_a)s AND
-        r2.user_id = %(user_b)s AND
-        %(lookup_query)s
+        r1.%(filter_field)s = "%(lookup_a)s" AND
+        r2.%(filter_field)s = "%(lookup_b)s" AND
+        r1.%(match_on)s = r2.%(match_on)s
         %(queryset_filter)s
     """
     
@@ -45,9 +49,10 @@ def sim_euclidean_distance(ratings_queryset, user_a, user_b):
     
     params = {
         'ratings_table': rating_model._meta.db_table,
-        'user_a': user_a.pk,
-        'user_b': user_b.pk,
-        'lookup_query': lookup_query,
+        'filter_field': filter_field,
+        'match_on': match_on,
+        'lookup_a': lookup_a,
+        'lookup_b': lookup_b,
         'queryset_filter': queryset_filter
     }
 
@@ -63,16 +68,19 @@ def sim_euclidean_distance(ratings_queryset, user_a, user_b):
     
     return 1 / (1 + sum_of_squares)
 
-def sim_pearson_correlation(ratings_queryset, user_a, user_b):
+def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
     rating_model = ratings_queryset.model
-    content_field = get_content_object_field(rating_model)
     
-    if is_gfk(content_field):
-        lookups = ['%s_id' % content_field.ct_field, content_field.fk_field]
+    if isinstance(factor_a, User):
+        filter_field = 'user_id'
+        match_on = 'hashed'
+        lookup_a = factor_a.pk
+        lookup_b = factor_b.pk
     else:
-        lookups = ['%s_id' % content_field.name]
-    
-    lookup_query = ' AND '.join(['r1.%(f)s = r2.%(f)s' % {'f': f} for f in lookups])
+        filter_field = 'hashed'
+        match_on = 'user_id'
+        lookup_a = rating_model(content_object=factor_a).generate_hash()
+        lookup_b = rating_model(content_object=factor_b).generate_hash()
 
     sql = """
     SELECT 
@@ -86,9 +94,9 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
         %(ratings_table)s AS r1,
         %(ratings_table)s AS r2
     WHERE
-        r1.user_id = %(user_a)s AND
-        r2.user_id = %(user_b)s AND
-        %(lookup_query)s
+        r1.%(filter_field)s = "%(lookup_a)s" AND
+        r2.%(filter_field)s = "%(lookup_b)s" AND
+        r1.%(match_on)s = r2.%(match_on)s
         %(queryset_filter)s
     """
     
@@ -101,9 +109,10 @@ def sim_pearson_correlation(ratings_queryset, user_a, user_b):
     
     params = {
         'ratings_table': rating_model._meta.db_table,
-        'user_a': user_a.pk,
-        'user_b': user_b.pk,
-        'lookup_query': lookup_query,
+        'filter_field': filter_field,
+        'match_on': match_on,
+        'lookup_a': lookup_a,
+        'lookup_b': lookup_b,
         'queryset_filter': queryset_filter
     }
 
