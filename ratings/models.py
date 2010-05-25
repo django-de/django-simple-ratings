@@ -9,9 +9,9 @@ from django.utils.hashcompat import sha_constructor
 from ratings.utils import get_content_object_field, is_gfk
 
 class RatedItemBase(models.Model):
-    score = models.FloatField(default=0)
+    score = models.FloatField(default=0, db_index=True)
     user = models.ForeignKey(User, related_name='%(class)ss')
-    hashed = models.CharField(max_length=40, editable=False)
+    hashed = models.CharField(max_length=40, editable=False, db_index=True)
 
     class Meta:
         abstract = True
