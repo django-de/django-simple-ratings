@@ -346,3 +346,8 @@ class RecommendationsTestCase(BaseRatingsTestCase):
         self.assertEqual(top_for_food_b.similar_object, self.food_a)
         
         self.assertEqual(top_for_food_a.score, top_for_food_b.score)
+        
+        Food.ratings.update_similar_items()
+        
+        other_for_food_a = self.food_a.ratings.similar_items()[0]
+        self.assertEqual(top_for_food_a, other_for_food_a)

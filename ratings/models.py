@@ -191,6 +191,10 @@ class _RatingsDescriptor(object):
     def is_gfk(self):
         return is_gfk(self.get_content_object_field())
     
+    def update_similar_items(self):
+        from ratings.utils import calculate_similar_items
+        calculate_similar_items(self.all())
+    
     def order_by_rating(self, aggregator=models.Sum, descending=True):
         ordering = descending and '-score' or 'score'
         related_field = self.get_content_object_field()
