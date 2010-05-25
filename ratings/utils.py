@@ -2,6 +2,7 @@ from math import sqrt
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.generic import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 
 def get_content_object_field(rating_model):
@@ -134,11 +135,11 @@ def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
     
     return num / den
 
-def top_matches(ratings_queryset, people, person, n=5, 
+def top_matches(ratings_queryset, items, item, n=5, 
                 similarity=sim_pearson_correlation):
     scores = [
-        (similarity(ratings_queryset, person, other), other)
-            for other in people if other != person]
+        (similarity(ratings_queryset, item, other), other)
+            for other in items if other != item]
     scores.sort()
     scores.reverse()
     return scores[:n]
@@ -174,3 +175,39 @@ def recommendations(ratings_queryset, people, person,
     rankings.sort()
     rankings.reverse()
     return rankings
+
+def calculate_similar_items(ratings_queryset, num=10):
+    # get distinct items from the ratings queryset - this can be optimized
+    field = get_content_object_field(ratings_queryset.model)
+
+    if is_gfk(field):
+        rated_ctypes = ratings_queryset.values_list('content_type', flat=True).distinct()
+        ctypes = ContentType.objects.filter(pk__in=rated_ctypes)
+        for ctype in ctypes:
+            ratings_subset = ratings_queryset.filter(content_type=ctype)
+            rating_ids = ratings_subset.values_list('object_id')
+            queryset = ctype.model_class()._default_manager.filter(pk__in=rating_ids)
+            _store_top_matches(ratings_queryset, queryset, num, True)
+    else:
+        rated_model = field.rel.to
+        rating_ids = ratings_queryset.values_list('content_object__pk')
+        queryset = rated_model._default_manager.filter(pk__in=rating_ids)
+        _store_top_matches(ratings_queryset, queryset, num, False)
+        
+def _store_top_matches(ratings_queryset, rated_queryset, num, is_gfk):
+    from ratings.models import SimilarItem
+    
+    ctype = ContentType.objects.get_for_model(rated_queryset.model)
+    rated_pks = rated_queryset.values_list('pk')
+    
+    for item in rated_queryset.iterator():
+        matches = top_matches(ratings_queryset, rated_queryset, item, num)
+        for (score, match) in matches:
+            si, created = SimilarItem.objects.get_or_create(
+                content_type=ctype,
+                object_id=item.pk,
+                similar_content_type=ContentType.objects.get_for_model(match),
+                similar_object_id=match.pk)
+            if created or si.score != score:
+                si.score = score
+                si.save()

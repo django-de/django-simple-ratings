@@ -168,6 +168,9 @@ class _RatingsDescriptor(object):
             def variance(self):
                 # the variance of all the scores, useful for 1-5
                 return self.perform_aggregation(models.Variance)
+            
+            def similar_items(self):
+                return SimilarItem.objects.get_for_item(instance)
 
         manager = RelatedManager()
         manager.core_filters = rel_model.lookup_kwargs(instance)
@@ -220,3 +223,27 @@ class _RatingsDescriptor(object):
         },
         order_by=[ordering])
         return qs
+
+
+class SimilarItemManager(models.Manager):
+    def get_for_item(self, instance):
+        ctype = ContentType.objects.get_for_model(instance)
+        qs = self.filter(content_type=ctype, object_id=instance.pk)
+        return qs.order_by('-score')
+
+
+class SimilarItem(models.Model):
+    content_type = models.ForeignKey(ContentType, related_name='similar_items')
+    object_id = models.IntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    similar_content_type = models.ForeignKey(ContentType, related_name='similar_items_set')
+    similar_object_id = models.IntegerField()
+    similar_object = GenericForeignKey('similar_content_type', 'similar_object_id')
+    
+    score = models.FloatField(default=0)
+    
+    objects = SimilarItemManager()
+    
+    def __unicode__(self):
+        return '%s (%s)' % (self.similar_object, self.score)
