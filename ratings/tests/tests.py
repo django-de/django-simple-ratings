@@ -3,7 +3,7 @@ from django.test import TestCase
 
 from ratings.models import RatedItem
 from ratings.tests.models import Food, Beverage, BeverageRating
-from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches, recommendations, calculate_similar_items
+from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches, recommendations, calculate_similar_items, recommended_items
 
 
 class BaseRatingsTestCase(TestCase):
@@ -351,3 +351,8 @@ class RecommendationsTestCase(BaseRatingsTestCase):
         
         other_for_food_a = self.food_a.ratings.similar_items()[0]
         self.assertEqual(top_for_food_a, other_for_food_a)
+    
+    def test_recommended_items(self):
+        calculate_similar_items(RatedItem.objects.all())
+        result = recommended_items(RatedItem.objects.all(), self.user_g)
+        self.assertEqual(str(result), '[(3.6100310668021822, <Food: food_a>), (3.5313950341859761, <Food: food_f>), (2.9609998607242685, <Food: food_c>)]')

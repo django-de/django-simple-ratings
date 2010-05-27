@@ -211,3 +211,31 @@ def _store_top_matches(ratings_queryset, rated_queryset, num, is_gfk):
             if created or si.score != score:
                 si.score = score
                 si.save()
+
+def recommended_items(ratings_queryset, user):
+    from ratings.models import SimilarItem
+    scores = {}
+    total_sim = {}
+
+    for item in ratings_queryset.filter(user=user):
+        
+        for similar_item in SimilarItem.objects.get_for_item(item.content_object):
+        
+            actual = similar_item.similar_object
+            lookup_kwargs = ratings_queryset.model.lookup_kwargs(actual)
+            lookup_kwargs['user'] = user
+            
+            if ratings_queryset.filter(**lookup_kwargs):
+                continue
+            
+            scores.setdefault(actual, 0)
+            scores[actual] += similar_item.score * item.score
+            
+            total_sim.setdefault(actual, 0)
+            total_sim[actual] += similar_item.score
+    
+    rankings = [(score/total_sim[item], item) for item, score in scores.iteritems()]
+    
+    rankings.sort()
+    rankings.reverse()
+    return rankings
