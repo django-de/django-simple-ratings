@@ -195,6 +195,9 @@ class _RatingsDescriptor(object):
         from ratings.utils import calculate_similar_items
         calculate_similar_items(self.all())
     
+    def similar_items(self, item):
+        return SimilarItem.objects.get_for_item(item)
+    
     def order_by_rating(self, aggregator=models.Sum, descending=True):
         ordering = descending and '-score' or 'score'
         related_field = self.get_content_object_field()

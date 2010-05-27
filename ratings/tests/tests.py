@@ -332,6 +332,9 @@ class RecommendationsTestCase(BaseRatingsTestCase):
     def test_recommending(self):
         results = recommendations(RatedItem.objects.all(), self.users, self.user_g)
         self.assertEqual(str(results), '[(3.3477895267131017, <Food: food_f>), (2.8325499182641614, <Food: food_a>), (2.5309807037655649, <Food: food_c>)]')
+        
+        results = recommendations(RatedItem.objects.all(), self.users, self.user_c)
+        self.assertEqual(str(results), '[(2.8092760065251268, <Food: food_c>), (2.6946367039803629, <Food: food_e>)]')
     
     def test_item_recommendation(self):
         results = top_matches(RatedItem.objects.all(), self.foods, self.food_d)
@@ -356,3 +359,6 @@ class RecommendationsTestCase(BaseRatingsTestCase):
         calculate_similar_items(RatedItem.objects.all())
         result = recommended_items(RatedItem.objects.all(), self.user_g)
         self.assertEqual(str(result), '[(3.6100310668021822, <Food: food_a>), (3.5313950341859761, <Food: food_f>), (2.9609998607242685, <Food: food_c>)]')
+    
+        result = recommended_items(RatedItem.objects.all(), self.user_c)
+        self.assertEqual(str(result), '[(2.2872022472681763, <Food: food_c>), (2.08453043505137, <Food: food_e>)]')
