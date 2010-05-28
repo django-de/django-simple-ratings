@@ -35,8 +35,8 @@ def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
         %(ratings_table)s AS r1,
         %(ratings_table)s AS r2
     WHERE
-        r1.%(filter_field)s = "%(lookup_a)s" AND
-        r2.%(filter_field)s = "%(lookup_b)s" AND
+        r1.%(filter_field)s = '%(lookup_a)s' AND
+        r2.%(filter_field)s = '%(lookup_b)s' AND
         r1.%(match_on)s = r2.%(match_on)s
         %(queryset_filter)s
     """
@@ -95,8 +95,8 @@ def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
         %(ratings_table)s AS r1,
         %(ratings_table)s AS r2
     WHERE
-        r1.%(filter_field)s = "%(lookup_a)s" AND
-        r2.%(filter_field)s = "%(lookup_b)s" AND
+        r1.%(filter_field)s = '%(lookup_a)s' AND
+        r2.%(filter_field)s = '%(lookup_b)s' AND
         r1.%(match_on)s = r2.%(match_on)s
         %(queryset_filter)s
     """
@@ -126,6 +126,9 @@ def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
         return 0
 
     sum1, sum2, sum1_sq, sum2_sq, psum, sample_size = result
+
+    if sum1 is None or sum2 is None or sample_size == 0:
+        return 0
     
     num = psum - (sum1 * sum2 / sample_size)
     den = sqrt((sum1_sq - pow(sum1, 2) / sample_size) * (sum2_sq - pow(sum2, 2) / sample_size))
