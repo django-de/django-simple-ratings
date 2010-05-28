@@ -32,12 +32,13 @@ def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
     sql = """
     SELECT r1.score - r2.score AS diff
     FROM
-        %(ratings_table)s AS r1,
+        %(ratings_table)s AS r1
+    INNER JOIN
         %(ratings_table)s AS r2
+    ON r1.%(match_on)s = r2.%(match_on)s
     WHERE
         r1.%(filter_field)s = '%(lookup_a)s' AND
-        r2.%(filter_field)s = '%(lookup_b)s' AND
-        r1.%(match_on)s = r2.%(match_on)s
+        r2.%(filter_field)s = '%(lookup_b)s'
         %(queryset_filter)s
     """
     
@@ -92,12 +93,13 @@ def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
         SUM(r1.score*r2.score) AS p_sum,
         COUNT(r1.id) AS sample_size
     FROM
-        %(ratings_table)s AS r1,
+        %(ratings_table)s AS r1
+    INNER JOIN
         %(ratings_table)s AS r2
+    ON r1.%(match_on)s = r2.%(match_on)s
     WHERE
         r1.%(filter_field)s = '%(lookup_a)s' AND
-        r2.%(filter_field)s = '%(lookup_b)s' AND
-        r1.%(match_on)s = r2.%(match_on)s
+        r2.%(filter_field)s = '%(lookup_b)s'
         %(queryset_filter)s
     """
     
