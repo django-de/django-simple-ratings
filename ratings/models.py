@@ -26,7 +26,7 @@ class RatedItemBase(models.Model):
         content_field = get_content_object_field(self)
         if is_gfk(content_field):
             uniq = (getattr(self, content_field.ct_field).pk,
-                    getattr(self, content_field.fk_field))
+                    long(getattr(self, content_field.fk_field)))
         else:
             uniq = getattr(self, content_field.name).pk
         hashed = sha_constructor(str(uniq)).hexdigest()

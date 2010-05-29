@@ -343,6 +343,7 @@ class RecommendationsTestCase(BaseRatingsTestCase):
     def test_similar_items(self):
         calculate_similar_items(RatedItem.objects.all(), 10)
         top_for_food_a = self.food_a.ratings.similar_items()[0]
+        
         self.assertEqual(top_for_food_a.similar_object, self.food_b)
         
         top_for_food_b = self.food_b.ratings.similar_items()[0]
@@ -357,8 +358,23 @@ class RecommendationsTestCase(BaseRatingsTestCase):
     
     def test_recommended_items(self):
         calculate_similar_items(RatedItem.objects.all())
+        # failure
         result = recommended_items(RatedItem.objects.all(), self.user_g)
-        self.assertEqual(str(result), '[(3.6100310668021822, <Food: food_a>), (3.5313950341859761, <Food: food_f>), (2.9609998607242685, <Food: food_c>)]')
+        r1, r2, r3 = result
+        self.assertEqual(str(r1[0])[:5], '3.610')
+        self.assertEqual(r1[1], self.food_a)
+        
+        self.assertEqual(str(r2[0])[:5], '3.531')
+        self.assertEqual(r2[1], self.food_f)
+        
+        self.assertEqual(str(r3[0])[:5], '2.960')
+        self.assertEqual(r3[1], self.food_c)
     
         result = recommended_items(RatedItem.objects.all(), self.user_c)
-        self.assertEqual(str(result), '[(2.2872022472681763, <Food: food_c>), (2.08453043505137, <Food: food_e>)]')
+        r1, r2 = result
+        
+        self.assertEqual(str(r1[0])[:5], '2.287')
+        self.assertEqual(r1[1], self.food_c)
+        
+        self.assertEqual(str(r2[0])[:5], '2.084')
+        self.assertEqual(r2[1], self.food_e)
