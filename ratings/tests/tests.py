@@ -6,17 +6,20 @@ from ratings.tests.models import Food, Beverage, BeverageRating
 from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches, recommendations, calculate_similar_items, recommended_items
 
 
-class BaseRatingsTestCase(TestCase):
+class RatingsTestCase(TestCase):
     fixtures = ['ratings_testdata.json']
+    
+    rated_model = Food
+    rating_model = RatedItem
+    
     def setUp(self):
-        self.apple = Food.objects.get(name='apple')
-        self.orange = Food.objects.get(name='orange')
-        
-        self.coke = Beverage.objects.get(name='coke')
-        self.pepsi = Beverage.objects.get(name='pepsi')
+        self.item1 = self.rated_model.objects.get(pk=1)
+        self.item2 = self.rated_model.objects.get(pk=2)
         
         self.john = User.objects.get(username='john')
         self.jane = User.objects.get(username='jane')
+        
+        self.related_name = self.rating_model.user.field.related_query_name()
 
     def _sort_by_pk(self, list_or_qs):
         # decorate, sort, undecorate using the pk of the items
@@ -29,248 +32,140 @@ class BaseRatingsTestCase(TestCase):
         # assert list or queryset a is the same as list or queryset b
         return self.assertEqual(self._sort_by_pk(a), self._sort_by_pk(b))
 
-
-class RatingsTestCase(BaseRatingsTestCase):
     def test_add(self):
-        rating = RatedItem(user=self.john, score=1)
-        self.apple.ratings.add(rating)
+        rating = self.rating_model(user=self.john, score=1)
+        self.item1.ratings.add(rating)
         
-        # make sure the apple rating got added
-        self.assertEqual(self.apple.ratings.count(), 1)
+        # make sure the item1 rating got added
+        self.assertEqual(self.item1.ratings.count(), 1)
         
         # get the rating and check that it saved correctly
-        apple_rating = self.apple.ratings.all()[0]
-        self.assertEqual(unicode(apple_rating), 'apple rated 1.0 by john')
+        item_rating = self.item1.ratings.all()[0]
+        self.assertTrue(unicode(item_rating).endswith(' rated 1.0 by john'))
         
         # get the rating another way and check that it works
-        apple_rating_alt = self.john.rateditems.all()[0]
-        self.assertEqual(apple_rating, apple_rating_alt)
+        user_manager = getattr(self.john, self.related_name)
+        item_rating_alt = user_manager.all()[0]
+        self.assertEqual(item_rating, item_rating_alt)
 
-        rating2 = RatedItem(user=self.john, score=-1)
-        self.orange.ratings.add(rating2)
+        rating2 = self.rating_model(user=self.john, score=-1)
+        self.item2.ratings.add(rating2)
         
-        # check that the orange rating got added and that our apple rating is ok
-        self.assertEqual(self.orange.ratings.count(), 1)
-        self.assertEqual(self.apple.ratings.count(), 1)
+        # check that the item2 rating got added and that our apple rating is ok
+        self.assertEqual(self.item2.ratings.count(), 1)
+        self.assertEqual(self.item1.ratings.count(), 1)
 
-        self.assertEqual(self.john.rateditems.count(), 2)
+        self.assertEqual(user_manager.count(), 2)
     
     def test_remove(self):
-        rating = RatedItem(user=self.john, score=1)
-        self.apple.ratings.add(rating)
+        rating = self.rating_model(user=self.john, score=1)
+        self.item1.ratings.add(rating)
         
-        rating2 = RatedItem(user=self.jane, score=-1)
-        self.apple.ratings.add(rating2)
+        rating2 = self.rating_model(user=self.jane, score=-1)
+        self.item1.ratings.add(rating2)
         
-        rating3 = RatedItem(user=self.john, score=-1)
-        self.orange.ratings.add(rating3)
+        rating3 = self.rating_model(user=self.john, score=-1)
+        self.item2.ratings.add(rating3)
         
-        # check to see that john's apple rating gets removed
-        self.apple.ratings.remove(rating)
-        self.assertEqual(self.apple.ratings.count(), 1)
-        self.assertEqual(self.apple.ratings.all()[0], rating2)
+        # check to see that john's item1 rating gets removed
+        self.item1.ratings.remove(rating)
+        self.assertEqual(self.item1.ratings.count(), 1)
+        self.assertEqual(self.item1.ratings.all()[0], rating2)
         
-        # make sure the orange's rating is still intact
-        self.assertEqual(self.orange.ratings.count(), 1)
+        # make sure the item2's rating is still intact
+        self.assertEqual(self.item2.ratings.count(), 1)
         
-        # trying to remove the orange rating from the apple doesn't work
-        self.assertRaises(RatedItem.DoesNotExist, self.apple.ratings.remove, rating3)
-        self.assertEqual(self.orange.ratings.count(), 1)
+        # trying to remove the item2 rating from the item1 doesn't work
+        self.assertRaises(self.rating_model.DoesNotExist, self.item1.ratings.remove, rating3)
+        self.assertEqual(self.item2.ratings.count(), 1)
     
     def test_clear(self):
-        rating = RatedItem(user=self.john, score=1)
-        self.apple.ratings.add(rating)
+        rating = self.rating_model(user=self.john, score=1)
+        self.item1.ratings.add(rating)
         
-        rating2 = RatedItem(user=self.jane, score=-1)
-        self.apple.ratings.add(rating2)
+        rating2 = self.rating_model(user=self.jane, score=-1)
+        self.item1.ratings.add(rating2)
         
-        rating3 = RatedItem(user=self.john, score=-1)
-        self.orange.ratings.add(rating3)
+        rating3 = self.rating_model(user=self.john, score=-1)
+        self.item2.ratings.add(rating3)
         
-        # check to see that we can clear apple's ratings
-        self.apple.ratings.clear()
-        self.assertEqual(self.apple.ratings.count(), 0)
-        self.assertEqual(self.orange.ratings.count(), 1)
+        # check to see that we can clear item1's ratings
+        self.item1.ratings.clear()
+        self.assertEqual(self.item1.ratings.count(), 0)
+        self.assertEqual(self.item2.ratings.count(), 1)
     
     def test_rate_method(self):
-        rating1 = self.apple.ratings.rate(self.john, 1)
-        rating2 = self.apple.ratings.rate(self.jane, -1)
-        rating3 = self.orange.ratings.rate(self.john, -1)
+        rating1 = self.item1.ratings.rate(self.john, 1)
+        rating2 = self.item1.ratings.rate(self.jane, -1)
+        rating3 = self.item2.ratings.rate(self.john, -1)
         
-        self.assertQuerysetEqual(self.apple.ratings.all(), [rating1, rating2])
-        self.assertQuerysetEqual(self.orange.ratings.all(), [rating3])
+        self.assertQuerysetEqual(self.item1.ratings.all(), [rating1, rating2])
+        self.assertQuerysetEqual(self.item2.ratings.all(), [rating3])
         
-        self.assertEqual(rating1.content_object, self.apple)
-        self.assertEqual(rating2.content_object, self.apple)
-        self.assertEqual(rating3.content_object, self.orange)
+        self.assertEqual(rating1.content_object, self.item1)
+        self.assertEqual(rating2.content_object, self.item1)
+        self.assertEqual(rating3.content_object, self.item2)
         
-        rating1_alt = self.apple.ratings.rate(self.john, 1000000)
+        rating1_alt = self.item1.ratings.rate(self.john, 1000000)
         
         # get_or_create'd the rating based on user, so count stays the same
-        self.assertEqual(self.apple.ratings.count(), 2)
+        self.assertEqual(self.item1.ratings.count(), 2)
         self.assertEqual(rating1.pk, rating1_alt.pk)
         self.assertEqual(rating1_alt.score, 1000000)
     
     def test_scoring(self):
-        rating1 = self.apple.ratings.rate(self.john, 1)
-        rating2 = self.apple.ratings.rate(self.jane, -1)
-        rating3 = self.orange.ratings.rate(self.john, -1)
+        rating1 = self.item1.ratings.rate(self.john, 1)
+        rating2 = self.item1.ratings.rate(self.jane, -1)
+        rating3 = self.item2.ratings.rate(self.john, -1)
         
-        self.assertEqual(self.apple.ratings.cumulative_score(), 0)
-        self.assertEqual(self.apple.ratings.average_score(), 0)
+        self.assertEqual(self.item1.ratings.cumulative_score(), 0)
+        self.assertEqual(self.item1.ratings.average_score(), 0)
         
-        self.apple.ratings.rate(self.john, 10)
-        self.assertEqual(self.apple.ratings.cumulative_score(), 9)
-        self.assertEqual(self.apple.ratings.average_score(), 4.5)
+        self.item1.ratings.rate(self.john, 10)
+        self.assertEqual(self.item1.ratings.cumulative_score(), 9)
+        self.assertEqual(self.item1.ratings.average_score(), 4.5)
     
     def test_all(self):
-        rating = RatedItem(user=self.john, score=1)
-        self.apple.ratings.add(rating)
+        rating = self.rating_model(user=self.john, score=1)
+        self.item1.ratings.add(rating)
         
-        rating2 = RatedItem(user=self.jane, score=-1)
-        self.apple.ratings.add(rating2)
+        rating2 = self.rating_model(user=self.jane, score=-1)
+        self.item1.ratings.add(rating2)
         
-        rating3 = RatedItem(user=self.john, score=-1)
-        self.orange.ratings.add(rating3)
+        rating3 = self.rating_model(user=self.john, score=-1)
+        self.item2.ratings.add(rating3)
         
-        self.assertQuerysetEqual(self.apple.ratings.all(), [rating, rating2])
-        self.assertQuerysetEqual(self.orange.ratings.all(), [rating3])
-        self.assertQuerysetEqual(Food.ratings.all(), [rating, rating2, rating3])
+        self.assertQuerysetEqual(self.item1.ratings.all(), [rating, rating2])
+        self.assertQuerysetEqual(self.item2.ratings.all(), [rating3])
+        self.assertQuerysetEqual(self.rated_model.ratings.all(), [rating, rating2, rating3])
     
     def test_ordering(self):
-        rating1 = self.apple.ratings.rate(self.john, 1)
-        rating2 = self.apple.ratings.rate(self.jane, -1)
-        rating3 = self.orange.ratings.rate(self.john, 1)
+        rating1 = self.item1.ratings.rate(self.john, 1)
+        rating2 = self.item1.ratings.rate(self.jane, -1)
+        rating3 = self.item2.ratings.rate(self.john, 1)
         
-        foods = Food.ratings.order_by_rating()
-        self.assertQuerysetEqual(foods, [self.orange, self.apple])
+        foods = self.rated_model.ratings.order_by_rating()
+        self.assertQuerysetEqual(foods, [self.item2, self.item1])
         
         self.assertEqual(foods[0].score, 1)
         self.assertEqual(foods[1].score, 0)
         
-        self.apple.ratings.rate(self.john, 3)
-        foods = Food.ratings.order_by_rating()
-        self.assertQuerysetEqual(foods, [self.apple, self.orange])
+        self.item1.ratings.rate(self.john, 3)
+        foods = self.rated_model.ratings.order_by_rating()
+        self.assertQuerysetEqual(foods, [self.item1, self.item2])
     
         self.assertEqual(foods[0].score, 2)
         self.assertEqual(foods[1].score, 1)
 
-class CustomModelRatingsTestCase(BaseRatingsTestCase):
-    def test_add(self):
-        rating = BeverageRating(user=self.john, score=1)
-        self.coke.ratings.add(rating)
-        
-        # make sure the coke rating got added
-        self.assertEqual(self.coke.ratings.count(), 1)
-        
-        # get the rating and check that it saved correctly
-        coke_rating = self.coke.ratings.all()[0]
-        self.assertEqual(unicode(coke_rating), 'coke rated 1.0 by john')
-        
-        # get the rating another way and check that it works
-        coke_rating_alt = self.john.beverageratings.all()[0]
-        self.assertEqual(coke_rating, coke_rating_alt)
 
-        rating2 = BeverageRating(user=self.john, score=-1)
-        self.pepsi.ratings.add(rating2)
-        
-        # check that the pepsi rating got added and that our coke rating is ok
-        self.assertEqual(self.pepsi.ratings.count(), 1)
-        self.assertEqual(self.coke.ratings.count(), 1)
+class CustomModelRatingsTestCase(RatingsTestCase):
+    rated_model = Beverage
+    rating_model = BeverageRating
 
-        self.assertEqual(self.john.beverageratings.count(), 2)
+
+class RecommendationsTestCase(TestCase):
+    fixtures = ['ratings_testdata.json']
     
-    def test_remove(self):
-        rating = BeverageRating(user=self.john, score=1)
-        self.coke.ratings.add(rating)
-        
-        rating2 = BeverageRating(user=self.jane, score=-1)
-        self.coke.ratings.add(rating2)
-        
-        rating3 = BeverageRating(user=self.john, score=-1)
-        self.pepsi.ratings.add(rating3)
-        
-        # check to see that john's coke rating gets removed
-        self.coke.ratings.remove(rating)
-        self.assertEqual(self.coke.ratings.count(), 1)
-        self.assertEqual(self.coke.ratings.all()[0], rating2)
-        
-        # make sure the pepsi's rating is still intact
-        self.assertEqual(self.pepsi.ratings.count(), 1)
-        
-        # trying to remove the pepsi rating from the coke doesn't work
-        self.assertRaises(BeverageRating.DoesNotExist, self.coke.ratings.remove, rating3)
-        self.assertEqual(self.pepsi.ratings.count(), 1)
-    
-    def test_clear(self):
-        rating = BeverageRating(user=self.john, score=1)
-        self.coke.ratings.add(rating)
-        
-        rating2 = BeverageRating(user=self.jane, score=-1)
-        self.coke.ratings.add(rating2)
-        
-        rating3 = BeverageRating(user=self.john, score=-1)
-        self.pepsi.ratings.add(rating3)
-        
-        # check to see that we can clear coke's ratings
-        self.coke.ratings.clear()
-        self.assertEqual(self.coke.ratings.count(), 0)
-        self.assertEqual(self.pepsi.ratings.count(), 1)
-    
-    def test_rate_method(self):
-        rating1 = self.coke.ratings.rate(self.john, 1)
-        rating2 = self.coke.ratings.rate(self.jane, -1)
-        rating3 = self.pepsi.ratings.rate(self.john, -1)
-        
-        self.assertQuerysetEqual(self.coke.ratings.all(), [rating1, rating2])
-        self.assertQuerysetEqual(self.pepsi.ratings.all(), [rating3])
-        
-        self.assertEqual(rating1.content_object, self.coke)
-        self.assertEqual(rating2.content_object, self.coke)
-        self.assertEqual(rating3.content_object, self.pepsi)
-        
-        rating1_alt = self.coke.ratings.rate(self.john, 1000000)
-        
-        # get_or_create'd the rating based on user, so count stays the same
-        self.assertEqual(self.coke.ratings.count(), 2)
-        self.assertEqual(rating1.pk, rating1_alt.pk)
-        self.assertEqual(rating1_alt.score, 1000000)
-    
-    def test_all(self):
-        rating = BeverageRating(user=self.john, score=1)
-        self.coke.ratings.add(rating)
-        
-        rating2 = BeverageRating(user=self.jane, score=-1)
-        self.coke.ratings.add(rating2)
-        
-        rating3 = BeverageRating(user=self.john, score=-1)
-        self.pepsi.ratings.add(rating3)
-        
-        self.assertQuerysetEqual(self.coke.ratings.all(), [rating, rating2])
-        self.assertQuerysetEqual(self.pepsi.ratings.all(), [rating3])
-        self.assertQuerysetEqual(Beverage.ratings.all(), [rating, rating2, rating3])
-   
-    def test_ordering(self):
-        rating1 = self.coke.ratings.rate(self.john, 1)
-        rating2 = self.coke.ratings.rate(self.jane, -1)
-        rating3 = self.pepsi.ratings.rate(self.john, 1)
-        
-        beverages = Beverage.ratings.order_by_rating()
-        self.assertQuerysetEqual(beverages, [self.pepsi, self.coke])
-        
-        self.assertEqual(beverages[0].score, 1)
-        self.assertEqual(beverages[1].score, 0)
-        
-        self.coke.ratings.rate(self.john, 3)
-        beverages = Beverage.ratings.order_by_rating()
-        self.assertQuerysetEqual(beverages, [self.coke, self.pepsi])
-        
-        self.assertEqual(beverages[0].score, 2)
-        self.assertEqual(beverages[1].score, 1)
-
-
-
-class RecommendationsTestCase(BaseRatingsTestCase):
     def setUp(self):
         super(RecommendationsTestCase, self).setUp()
         
