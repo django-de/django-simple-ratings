@@ -5,7 +5,7 @@ from django.db import models, IntegrityError
 from django.template.defaultfilters import slugify
 from django.utils.hashcompat import sha_constructor
 
-from ratings.utils import get_content_object_field, is_gfk
+from ratings.utils import get_content_object_field, is_gfk, recommended_items
 
 class RatedItemBase(models.Model):
     score = models.FloatField(default=0, db_index=True)
@@ -196,6 +196,9 @@ class _RatingsDescriptor(object):
     
     def similar_items(self, item):
         return SimilarItem.objects.get_for_item(item)
+    
+    def recommended_items(self, user):
+        return recommended_items(self.all(), user)
     
     def order_by_rating(self, aggregator=models.Sum, descending=True):
         ordering = descending and '-score' or 'score'
