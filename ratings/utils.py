@@ -1,5 +1,6 @@
 from math import sqrt
 
+import django
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -14,6 +15,19 @@ def get_content_object_field(rating_model):
 
 def is_gfk(content_field):
     return isinstance(content_field, GenericForeignKey)
+
+def query_has_where(query):
+    if django.VERSION < (1, 2):
+        return query.where.as_sql()[0] is None
+    else:
+        qn = connection.ops.quote_name
+        return query.where.as_sql(qn, connection)[0] is None
+
+def query_as_sql(query):
+    if django.VERSION < (1, 2):
+        return query.as_sql()
+    else:
+        return query.get_compiler(connection=connection).as_sql()
 
 def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
     rating_model = ratings_queryset.model
@@ -43,10 +57,11 @@ def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
     """
     
     rating_query = ratings_queryset.values_list('pk').query
-    if rating_query.where.as_sql()[0] is None:
+    if query_has_where(rating_query):
         queryset_filter = ''
     else:
-        rating_qs_sql = rating_query.as_sql()[0] % rating_query.as_sql()[1]
+        q, p = query_as_sql(rating_query)
+        rating_qs_sql = q % p
         queryset_filter = ' AND r1.id IN (%s)' % rating_qs_sql
     
     params = {
@@ -72,6 +87,7 @@ def sim_euclidean_distance(ratings_queryset, factor_a, factor_b):
 
 def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
     rating_model = ratings_queryset.model
+    qn = connection.ops.quote_name
     
     if isinstance(factor_a, User):
         filter_field = 'user_id'
@@ -104,10 +120,11 @@ def sim_pearson_correlation(ratings_queryset, factor_a, factor_b):
     """
     
     rating_query = ratings_queryset.values_list('pk').query
-    if rating_query.where.as_sql()[0] is None:
+    if query_has_where(rating_query):
         queryset_filter = ''
     else:
-        rating_qs_sql = rating_query.as_sql()[0] % rating_query.as_sql()[1]
+        q, p = query_as_sql(rating_query)
+        rating_qs_sql = q % p
         queryset_filter = ' AND r1.id IN (%s)' % rating_qs_sql
     
     params = {
