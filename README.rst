@@ -2,7 +2,17 @@
 django-simple-ratings
 =====================
 
-a simple, extensible rating system.
+a simple, extensible rating system.  
+
+
+With a little bit more
+----------------------
+
+also, a playground for different stuff i've been reading about in 
+*programming collective intelligence*, by toby segaran.
+
+this stuff lives in utils.py and is there if you want to experiment (or
+contribute!).
 
 
 Getting started
