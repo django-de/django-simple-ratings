@@ -66,6 +66,7 @@ class Ratings(object):
     def contribute_to_class(self, cls, name):
         # set up the ForeignRelatedObjectsDescriptor right hyah
         setattr(cls, name, _RatingsDescriptor(cls, self.rating_model, name))
+        setattr(cls, '_ratings_field', name)
 
 
 class _RatingsDescriptor(object):

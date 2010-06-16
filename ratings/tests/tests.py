@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.template import Template, Context
 from django.test import TestCase
 
 from ratings.models import RatedItem
@@ -156,6 +157,15 @@ class RatingsTestCase(TestCase):
     
         self.assertEqual(foods[0].score, 2)
         self.assertEqual(foods[1].score, 1)
+    
+    def test_templatetag(self):
+        t = Template('{% load ratings_tags %}{{ obj|rating_score:user }}')
+        c = Context({'obj': self.item1, 'user': self.john})
+        
+        self.assertEqual(t.render(c), 'None')
+        
+        self.item1.ratings.rate(self.john, 10)
+        self.assertEqual(t.render(c), '10.0')
 
 
 class CustomModelRatingsTestCase(RatingsTestCase):
