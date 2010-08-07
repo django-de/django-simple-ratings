@@ -2,3 +2,4 @@ include LICENSE
 include MANIFEST.in
 include README.rst
 include TODO.rst
+recursive-include ratings/tests/fixtures *.json

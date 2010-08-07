@@ -17,7 +17,8 @@ setup(
     url='http://github.com/coleifer/django-simple-ratings/tree/master',
     packages=find_packages(),
     package_data = {
-        'django-simple-ratings': [
+        'ratings': [
+            'tests/fixtures/*.json',
         ],
     },
     classifiers=[
