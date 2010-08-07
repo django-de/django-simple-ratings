@@ -1,5 +1,4 @@
-include INSTALL.txt
-include LICENSE.txt
+include LICENSE
 include MANIFEST.in
 include README.rst
 include TODO.rst
