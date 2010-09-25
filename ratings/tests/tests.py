@@ -151,6 +151,11 @@ class RatingsTestCase(TestCase):
         self.assertEqual(foods[0].score, 1)
         self.assertEqual(foods[1].score, 0)
         
+        foods = self.rated_model.ratings.order_by_rating(descending=False, alias='sum_score')
+        self.assertQuerysetEqual(foods, [self.item1, self.item2])
+        self.assertEqual(foods[0].sum_score, 0)
+        self.assertEqual(foods[1].sum_score, 1)
+        
         self.item1.ratings.rate(self.john, 3)
         foods = self.rated_model.ratings.order_by_rating()
         self.assertQuerysetEqual(foods, [self.item1, self.item2])

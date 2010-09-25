@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericForeignKey
-from django.db import models, IntegrityError
+from django.db import connection, models
 from django.template.defaultfilters import slugify
 from django.utils.hashcompat import sha_constructor
 
@@ -201,38 +201,47 @@ class _RatingsDescriptor(object):
     def recommended_items(self, user):
         return recommended_items(self.all(), user)
     
-    def order_by_rating(self, aggregator=models.Sum, descending=True):
-        ordering = descending and '-score' or 'score'
+    def order_by_rating(self, aggregator=models.Sum, descending=True, 
+                        queryset=None, alias='score'):
+        ordering = descending and '-%s' % alias or alias
         related_field = self.get_content_object_field()
+        
+        if queryset is None:
+            queryset = self.rated_model._default_manager.all()
+        
         if not self.is_gfk:
-            qn = related_field.related_query_name()
-            qs = self.rated_model._default_manager.all()
-            return qs.annotate(score=aggregator('%s__score' % qn)).order_by(ordering)
-        # nasty.
+            query_name = related_field.related_query_name()
+            return queryset.annotate(**{
+                alias: aggregator('%s__score' % query_name)
+            }).order_by(ordering)
+        
+        qn = connection.ops.quote_name
+        
+        # handle the "extra" query when aggregating on GFK
         content_type = ContentType.objects.get_for_model(self.rated_model)
         
         # collect the params we'll be using
         params = (
             aggregator.name, # the function that's doing the aggregation
-            self.rating_model._meta.db_table, # table holding rated item info
-            related_field.ct_field, # the content_type field on the GFK
+            qn(self.rating_model._meta.db_table), # table holding rated item info
+            qn(related_field.ct_field + '_id'), # the content_type field on the GFK
             content_type.pk, # the content_type id we need to match
-            related_field.fk_field, # the object_id field on the GFK
-            self.rated_model._meta.db_table, # the table and pk from the main
-            self.rated_model._meta.pk.name   # part of the query
+            qn(related_field.fk_field), # the object_id field on the GFK
+            qn(self.rated_model._meta.db_table), # the table and pk from the main
+            qn(self.rated_model._meta.pk.name)   # part of the query
         )
         
-        qs = self.rated_model._default_manager.all().extra(select={
-            'score': """
+        queryset = queryset.extra(select={
+            alias: """
                 SELECT %s(score) AS summed_score
                 FROM %s
                 WHERE
-                    %s_id=%s AND
+                    %s=%s AND
                     %s=%s.%s
             """ % params            
         },
         order_by=[ordering])
-        return qs
+        return queryset
 
 
 class SimilarItemManager(models.Manager):
