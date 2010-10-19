@@ -29,7 +29,7 @@ class RatingsTestCase(TestCase):
         annotated.sort()
         return map(lambda item_tuple: item_tuple[1], annotated)
     
-    def assertQuerysetEqual(self, a, b):
+    def assertQuerySetEqual(self, a, b):
         # assert list or queryset a is the same as list or queryset b
         return self.assertEqual(self._sort_by_pk(a), self._sort_by_pk(b))
 
@@ -100,8 +100,8 @@ class RatingsTestCase(TestCase):
         rating2 = self.item1.ratings.rate(self.jane, -1)
         rating3 = self.item2.ratings.rate(self.john, -1)
         
-        self.assertQuerysetEqual(self.item1.ratings.all(), [rating1, rating2])
-        self.assertQuerysetEqual(self.item2.ratings.all(), [rating3])
+        self.assertQuerySetEqual(self.item1.ratings.all(), [rating1, rating2])
+        self.assertQuerySetEqual(self.item2.ratings.all(), [rating3])
         
         self.assertEqual(rating1.content_object, self.item1)
         self.assertEqual(rating2.content_object, self.item1)
@@ -136,9 +136,9 @@ class RatingsTestCase(TestCase):
         rating3 = self.rating_model(user=self.john, score=-1)
         self.item2.ratings.add(rating3)
         
-        self.assertQuerysetEqual(self.item1.ratings.all(), [rating, rating2])
-        self.assertQuerysetEqual(self.item2.ratings.all(), [rating3])
-        self.assertQuerysetEqual(self.rated_model.ratings.all(), [rating, rating2, rating3])
+        self.assertQuerySetEqual(self.item1.ratings.all(), [rating, rating2])
+        self.assertQuerySetEqual(self.item2.ratings.all(), [rating3])
+        self.assertQuerySetEqual(self.rated_model.ratings.all(), [rating, rating2, rating3])
     
     def test_filtering(self):
         john_rating_1 = self.rating_model(user=self.john, score=1)
@@ -151,10 +151,10 @@ class RatingsTestCase(TestCase):
         self.item1.ratings.add(jane_rating_1)
 
         rated_qs = self.rated_model.ratings.filter(user=self.john)
-        self.assertQuerysetEqual(rated_qs, [john_rating_2, john_rating_1])
+        self.assertQuerySetEqual(rated_qs, [john_rating_2, john_rating_1])
 
         rated_qs = self.rated_model.ratings.filter(user=self.john).order_by_rating()
-        self.assertQuerysetEqual(rated_qs, [self.item2, self.item1])
+        self.assertQuerySetEqual(rated_qs, [self.item2, self.item1])
         self.assertEqual(rated_qs[0].score, 2.0)
         self.assertEqual(rated_qs[1].score, 1.0)
     
@@ -163,23 +163,39 @@ class RatingsTestCase(TestCase):
         rating2 = self.item1.ratings.rate(self.jane, -1)
         rating3 = self.item2.ratings.rate(self.john, 1)
         
-        foods = self.rated_model.ratings.order_by_rating()
-        self.assertQuerysetEqual(foods, [self.item2, self.item1])
+        rated_qs = self.rated_model.ratings.all().order_by_rating()
+        self.assertQuerySetEqual(rated_qs, [self.item2, self.item1])
+        self.assertQuerySetEqual(rated_qs,
+            self.rated_model.ratings.order_by_rating()
+        )
         
-        self.assertEqual(foods[0].score, 1)
-        self.assertEqual(foods[1].score, 0)
+        self.assertEqual(rated_qs[0].score, 1)
+        self.assertEqual(rated_qs[1].score, 0)
         
-        foods = self.rated_model.ratings.order_by_rating(descending=False, alias='sum_score')
-        self.assertQuerysetEqual(foods, [self.item1, self.item2])
-        self.assertEqual(foods[0].sum_score, 0)
-        self.assertEqual(foods[1].sum_score, 1)
+        item1_qs = queryset=self.rated_model._default_manager.filter(pk=self.item1.pk)
+        rated_qs = self.rated_model.ratings.all().order_by_rating(queryset=item1_qs)
+        self.assertQuerySetEqual(rated_qs, [self.item1])
+        self.assertQuerySetEqual(rated_qs,
+            self.rated_model.ratings.order_by_rating(queryset=item1_qs)
+        )
+        
+        self.assertEqual(rated_qs[0].score, 0)
+        
+        rated_qs = self.rated_model.ratings.all().order_by_rating(descending=False, alias='sum_score')
+        self.assertQuerySetEqual(rated_qs, [self.item1, self.item2])
+        self.assertQuerySetEqual(rated_qs,
+            self.rated_model.ratings.order_by_rating(descending=False, alias='sum_score')
+        )
+        
+        self.assertEqual(rated_qs[0].sum_score, 0)
+        self.assertEqual(rated_qs[1].sum_score, 1)
         
         self.item1.ratings.rate(self.john, 3)
-        foods = self.rated_model.ratings.order_by_rating()
-        self.assertQuerysetEqual(foods, [self.item1, self.item2])
+        rated_qs = self.rated_model.ratings.all().order_by_rating()
+        self.assertQuerySetEqual(rated_qs, [self.item1, self.item2])
     
-        self.assertEqual(foods[0].score, 2)
-        self.assertEqual(foods[1].score, 1)
+        self.assertEqual(rated_qs[0].score, 2)
+        self.assertEqual(rated_qs[1].score, 1)
     
     def test_templatetag(self):
         t = Template('{% load ratings_tags %}{{ obj|rating_score:user }}')
