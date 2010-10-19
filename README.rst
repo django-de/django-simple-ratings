@@ -2,7 +2,11 @@
 django-simple-ratings
 =====================
 
-a simple, extensible rating system.  
+a simple, extensible rating system.
+
+dependencies:
+
+* django-generic-aggregation: http://github.com/coleifer/django-generic-aggregation
 
 
 With a little bit more

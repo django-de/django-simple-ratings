@@ -140,6 +140,23 @@ class RatingsTestCase(TestCase):
         self.assertQuerysetEqual(self.item2.ratings.all(), [rating3])
         self.assertQuerysetEqual(self.rated_model.ratings.all(), [rating, rating2, rating3])
     
+    def test_filtering(self):
+        john_rating_1 = self.rating_model(user=self.john, score=1)
+        self.item1.ratings.add(john_rating_1)
+        
+        john_rating_2 = self.rating_model(user=self.john, score=2)
+        self.item2.ratings.add(john_rating_2)
+        
+        jane_rating_1 = self.rating_model(user=self.jane, score=2)
+        self.item1.ratings.add(jane_rating_1)
+
+        rated_qs = self.rated_model.ratings.order_by_rating(
+            rating_queryset=self.rating_model._default_manager.filter(user=self.john)
+        )
+        self.assertQuerysetEqual(rated_qs, [self.item2, self.item1])
+        self.assertEqual(rated_qs[0].score, 2.0)
+        self.assertEqual(rated_qs[1].score, 1.0)
+    
     def test_ordering(self):
         rating1 = self.item1.ratings.rate(self.john, 1)
         rating2 = self.item1.ratings.rate(self.jane, -1)

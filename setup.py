@@ -21,6 +21,7 @@ setup(
             'tests/fixtures/*.json',
         ],
     },
+    install_requires=['django-generic-aggregation'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
