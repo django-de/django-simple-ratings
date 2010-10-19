@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db import connection, models
+from django.db.models.query import QuerySet
 from django.template.defaultfilters import slugify
 from django.utils.hashcompat import sha_constructor
 
@@ -72,6 +73,47 @@ class Ratings(object):
         setattr(cls, '_ratings_field', name)
 
 
+class RatingsQuerySet(QuerySet):
+    def __init__(self, model=None, query=None, using=None, rated_model=None):
+        self.rated_model = rated_model
+        super(RatingsQuerySet, self).__init__(model, query, using)
+    
+    def _clone(self, *args, **kwargs):
+        instance = super(RatingsQuerySet, self)._clone(*args, **kwargs)
+        instance.rated_model = self.rated_model
+        return instance
+    
+    def order_by_rating(self, aggregator=models.Sum, descending=True, 
+                        queryset=None, alias='score'):
+        related_field = get_content_object_field(self.model)
+        
+        if queryset is None:
+            queryset = self.rated_model._default_manager.all()
+        
+        if not is_gfk(related_field):
+            ordering = descending and '-%s' % alias or alias
+            query_name = related_field.related_query_name()
+
+            if len(self.query.where.children):
+                queryset = queryset.filter(**{
+                    '%s__pk__in' % query_name: self.values_list('pk')
+                })
+            
+            return queryset.annotate(**{
+                alias: aggregator('%s__score' % query_name)
+            }).order_by(ordering)
+        
+        else:
+            return generic_annotate(
+                queryset,
+                related_field,
+                aggregator('score'),
+                self,
+                descending,
+                alias
+            )
+
+
 class _RatingsDescriptor(models.Manager):
     def __init__(self, rated_model, rating_model, rating_field):
         self.rated_model = rated_model
@@ -94,9 +136,8 @@ class _RatingsDescriptor(models.Manager):
     
     def get_query_set(self):
         base_filters = self.rating_model.base_kwargs(self.rated_model)
-        return self.rating_model._default_manager.filter(
-            **base_filters
-        )
+        qs = RatingsQuerySet(self.rating_model, rated_model=self.rated_model)
+        return qs.filter(**base_filters)
 
     def delete_manager(self, instance):
         """
@@ -113,10 +154,12 @@ class _RatingsDescriptor(models.Manager):
         """
         rel_field = self.rating_field
         rel_model = self.rating_model
+        rated_model = self.rated_model
 
         class RelatedManager(superclass):
             def get_query_set(self):
-                return superclass.get_query_set(self).filter(**(self.core_filters))
+                qs = RatingsQuerySet(rel_model, rated_model=rated_model)
+                return qs.filter(**(self.core_filters))
 
             def add(self, *objs):
                 lookup_kwargs = rel_model.lookup_kwargs(instance)
@@ -207,34 +250,10 @@ class _RatingsDescriptor(models.Manager):
         return recommended_items(self.all(), user)
     
     def order_by_rating(self, aggregator=models.Sum, descending=True, 
-                        queryset=None, rating_queryset=None, alias='score'):
-        related_field = self.get_content_object_field()
-        
-        if queryset is None:
-            queryset = self.rated_model._default_manager.all()
-        
-        if not self.is_gfk:
-            ordering = descending and '-%s' % alias or alias
-            query_name = related_field.related_query_name()
-            
-            if rating_queryset is not None:
-                queryset = queryset.filter(**{
-                    '%s__pk__in' % query_name: rating_queryset.values_list('pk')
-                })
-            
-            return queryset.annotate(**{
-                alias: aggregator('%s__score' % query_name)
-            }).order_by(ordering)
-        
-        else:
-            return generic_annotate(
-                queryset,
-                related_field,
-                aggregator('score'),
-                rating_queryset,
-                descending,
-                alias
-            )
+                        queryset=None, alias='score'):
+        return self.all().order_by_rating(
+            aggregator, descending, queryset, alias
+        )
 
 
 class SimilarItemManager(models.Manager):
