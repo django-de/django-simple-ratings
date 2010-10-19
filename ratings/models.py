@@ -72,7 +72,7 @@ class Ratings(object):
         setattr(cls, '_ratings_field', name)
 
 
-class _RatingsDescriptor(object):
+class _RatingsDescriptor(models.Manager):
     def __init__(self, rated_model, rating_model, rating_field):
         self.rated_model = rated_model
         self.rating_model = rating_model
@@ -91,6 +91,12 @@ class _RatingsDescriptor(object):
 
         manager = self.__get__(instance)
         manager.add(*value)
+    
+    def get_query_set(self):
+        base_filters = self.rating_model.base_kwargs(self.rated_model)
+        return self.rating_model._default_manager.filter(
+            **base_filters
+        )
 
     def delete_manager(self, instance):
         """
@@ -179,11 +185,7 @@ class _RatingsDescriptor(object):
         manager.core_filters = rel_model.lookup_kwargs(instance)
         manager.model = rel_model
 
-        return manager
-    
-    def all(self):
-        query = self.rating_model.base_kwargs(self.rated_model)
-        return self.rating_model._default_manager.filter(**query)
+        return manager    
     
     def get_content_object_field(self):
         if not hasattr(self, '_content_object_field'):

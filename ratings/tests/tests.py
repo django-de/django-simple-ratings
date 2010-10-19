@@ -157,6 +157,9 @@ class RatingsTestCase(TestCase):
         self.assertEqual(rated_qs[0].score, 2.0)
         self.assertEqual(rated_qs[1].score, 1.0)
     
+        rated_qs = self.rated_model.ratings.filter(user=self.john)
+        self.assertQuerysetEqual(rated_qs, [john_rating_2, john_rating_1])
+    
     def test_ordering(self):
         rating1 = self.item1.ratings.rate(self.john, 1)
         rating2 = self.item1.ratings.rate(self.jane, -1)
