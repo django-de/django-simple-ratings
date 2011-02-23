@@ -3,7 +3,7 @@ from django.template import Template, Context
 from django.test import TestCase
 
 from ratings.models import RatedItem
-from ratings.tests.models import Food, Beverage, BeverageRating
+from ratings.ratings_tests.models import Food, Beverage, BeverageRating
 from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches, recommendations, calculate_similar_items, recommended_items
 
 
