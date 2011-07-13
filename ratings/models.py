@@ -28,13 +28,9 @@ class RatedItemBase(models.Model):
     
     def generate_hash(self):
         content_field = get_content_object_field(self)
-        if is_gfk(content_field):
-            uniq = (getattr(self, content_field.ct_field).pk,
-                    long(getattr(self, content_field.fk_field)))
-        else:
-            uniq = getattr(self, content_field.name).pk
-        hashed = sha_constructor(str(uniq)).hexdigest()
-        return hashed
+        related_object = getattr(self, content_field.name)
+        uniq = '%s.%s' % (related_object._meta, related_object.pk)
+        return sha_constructor(uniq).hexdigest()
 
     @classmethod
     def lookup_kwargs(cls, instance):

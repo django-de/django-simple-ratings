@@ -172,7 +172,7 @@ class RatingsTestCase(TestCase):
         self.assertEqual(rated_qs[0].score, 1)
         self.assertEqual(rated_qs[1].score, 0)
         
-        item1_qs = queryset=self.rated_model._default_manager.filter(pk=self.item1.pk)
+        item1_qs = self.rated_model._default_manager.filter(pk=self.item1.pk)
         rated_qs = self.rated_model.ratings.all().order_by_rating(queryset=item1_qs)
         self.assertQuerySetEqual(rated_qs, [self.item1])
         self.assertQuerySetEqual(rated_qs,
