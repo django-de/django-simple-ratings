@@ -389,6 +389,18 @@ class RatingsTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         
         self.assertEqual(self.item1.ratings.cumulative_score(), 2.5)
+        
+        # hit it with a negative rating
+        test_url = reverse('ratings_rate_object', args=(
+            ctype.pk,
+            self.item1.pk,
+            -1.5,
+        ))
+        
+        resp = self.client.post(test_url, {}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        
+        self.assertEqual(self.item1.ratings.cumulative_score(), 1.0)
 
 
 class CustomModelRatingsTestCase(RatingsTestCase):
