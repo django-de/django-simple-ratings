@@ -13,6 +13,16 @@ or undocumented features::
     python setup.py install
 
 
+Installing the dependencies
+---------------------------
+
+The project currently depends on `django-generic-aggregation <https://github.com/coleifer/django-generic-aggregation>`_.
+You can manually install using pip or install from the "pip_requirements.txt" file
+bundled with the source::
+
+    pip install -r pip_requirements.txt
+
+
 Adding to your Django Project
 --------------------------------
 
