@@ -19,9 +19,11 @@ if not settings.configured:
         INSTALLED_APPS = [
             'django.contrib.auth',
             'django.contrib.contenttypes',
+            'django.contrib.sessions',
             'ratings',
             'ratings.ratings_tests',
         ],
+        ROOT_URLCONF='ratings.ratings_tests.urls',
     )
 
 from django.test.simple import run_tests

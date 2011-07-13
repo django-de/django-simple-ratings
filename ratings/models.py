@@ -197,6 +197,9 @@ class _RatingsDescriptor(models.Manager):
                     rating.save()
                 return rating
             
+            def unrate(self, user):
+                return self.filter(user=user, **rel_model.lookup_kwargs(instance)).delete()
+            
             def perform_aggregation(self, aggregator):
                 score = self.all().aggregate(agg=aggregator('score'))
                 return score['agg']

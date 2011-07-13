@@ -1,4 +1,6 @@
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.core.urlresolvers import reverse
 from django.template import Template, Context
 from django.test import TestCase
 
@@ -78,6 +80,28 @@ class RatingsTestCase(TestCase):
         
         # trying to remove the item2 rating from the item1 doesn't work
         self.assertRaises(self.rating_model.DoesNotExist, self.item1.ratings.remove, rating3)
+        self.assertEqual(self.item2.ratings.count(), 1)
+    
+    def test_unrate(self):
+        rating = self.rating_model(user=self.john, score=1)
+        self.item1.ratings.add(rating)
+        
+        rating2 = self.rating_model(user=self.jane, score=-1)
+        self.item1.ratings.add(rating2)
+        
+        rating3 = self.rating_model(user=self.john, score=-1)
+        self.item2.ratings.add(rating3)
+        
+        # check to see that john's item1 rating gets removed
+        self.item1.ratings.unrate(self.john)
+        self.assertEqual(self.item1.ratings.count(), 1)
+        self.assertEqual(self.item1.ratings.all()[0], rating2)
+        
+        # make sure the item2's rating is still intact
+        self.assertEqual(self.item2.ratings.count(), 1)
+        
+        self.item1.ratings.unrate(self.jane)
+        self.assertEqual(self.item1.ratings.count(), 0)
         self.assertEqual(self.item2.ratings.count(), 1)
     
     def test_clear(self):
@@ -197,14 +221,130 @@ class RatingsTestCase(TestCase):
         self.assertEqual(rated_qs[0].score, 2)
         self.assertEqual(rated_qs[1].score, 1)
     
-    def test_templatetag(self):
+    def test_rating_score_filter(self):
         t = Template('{% load ratings_tags %}{{ obj|rating_score:user }}')
         c = Context({'obj': self.item1, 'user': self.john})
+        
+        self.item2.ratings.rate(self.john, 5)
         
         self.assertEqual(t.render(c), 'None')
         
         self.item1.ratings.rate(self.john, 10)
         self.assertEqual(t.render(c), '10.0')
+    
+    def test_has_rated_filter(self):
+        t = Template('{% load ratings_tags %}{{ user|has_rated:obj }}')
+        c = Context({'obj': self.item1, 'user': self.john})
+        
+        self.item2.ratings.rate(self.john, 5)
+        
+        self.assertEqual(t.render(c), 'False')
+        
+        self.item1.ratings.rate(self.john, 10)
+        self.assertEqual(t.render(c), 'True')
+    
+    def test_rate_url(self):
+        t = Template('{% load ratings_tags %}{{ obj|rate_url:score }}')
+        c = Context({'obj': self.item1, 'score': 2})
+        
+        ctype = ContentType.objects.get_for_model(self.rated_model)
+        
+        rendered = t.render(c)
+        self.assertEqual(rendered, '/rate/%d/%d/2/' % (ctype.pk, self.item1.pk))
+        
+        c['score'] = 3.0
+        
+        rendered = t.render(c)
+        self.assertEqual(rendered, '/rate/%d/%d/3.0/' % (ctype.pk, self.item1.pk))
+    
+    def test_unrate_url(self):
+        t = Template('{% load ratings_tags %}{{ obj|unrate_url }}')
+        c = Context({'obj': self.item1})
+        
+        ctype = ContentType.objects.get_for_model(self.rated_model)
+        
+        rendered = t.render(c)
+        self.assertEqual(rendered, '/unrate/%d/%d/' % (ctype.pk, self.item1.pk))
+    
+    def test_rating_view(self):
+        user = User.objects.create_user('a', 'a', 'a')
+        user2 = User.objects.create_user('b', 'b', 'b')
+        
+        ctype = ContentType.objects.get_for_model(self.rated_model)
+        user_ctype = ContentType.objects.get_for_model(User)
+        
+        bad_ctype_pk = reverse('ratings_rate_object', args=(0, user.pk, 2))
+        
+        bad_obj_pk = reverse('ratings_rate_object', args=(ctype.pk, 0, 2))
+        
+        invalid_ctype_pk = reverse('ratings_rate_object', args=(user_ctype.pk, user.pk, 2))
+        
+        test_url = reverse('ratings_rate_object', args=(
+            ctype.pk,
+            self.item1.pk,
+            3,
+        ))
+        
+        test_unrate_url = reverse('ratings_unrate_object', args=(
+            ctype.pk,
+            self.item1.pk,
+        ))
+        
+        # trying to hit the view results in a 302 to the login view
+        resp = self.client.get(test_url)
+        self.assertEqual(resp.status_code, 302) # login redirect
+        
+        # log in
+        self.client.login(username='a', password='a')
+        
+        # hit the view with a GET
+        resp = self.client.get(test_url)
+        self.assertEqual(resp.status_code, 405) # bad method, yo
+        
+        # hit the view with a bad contenttype id
+        resp = self.client.post(bad_ctype_pk)
+        self.assertEqual(resp.status_code, 404)
+        
+        # hit the view with a bad object pk
+        resp = self.client.post(bad_obj_pk)
+        self.assertEqual(resp.status_code, 404)
+        
+        # hit the view with an invalid ctype
+        resp = self.client.post(bad_ctype_pk)
+        self.assertEqual(resp.status_code, 404)
+        
+        # sanity check
+        self.assertEqual(self.item1.ratings.count(), 0)
+        
+        # finally give it some good data
+        resp = self.client.post(test_url, {'next': '/redir/'})
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(resp['location'].endswith('/redir/'))
+        
+        self.assertEqual(self.item1.ratings.cumulative_score(), 3.0)
+        
+        # post via ajax
+        test_url = reverse('ratings_rate_object', args=(
+            ctype.pk,
+            self.item1.pk,
+            2.5,
+        ))
+        resp = self.client.post(test_url, {}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        
+        self.assertEqual(self.item1.ratings.cumulative_score(), 2.5)
+        
+        self.client.login(username='b', password='b')
+        
+        resp = self.client.post(test_url, {}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        
+        self.assertEqual(self.item1.ratings.cumulative_score(), 5.0)
+        
+        resp = self.client.post(test_unrate_url, {}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        
+        self.assertEqual(self.item1.ratings.cumulative_score(), 2.5)
 
 
 class CustomModelRatingsTestCase(RatingsTestCase):
