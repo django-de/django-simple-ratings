@@ -97,6 +97,10 @@ class RatingsTestCase(TestCase):
         self.assertEqual(self.item1.ratings.count(), 1)
         self.assertEqual(self.item1.ratings.all()[0], rating2)
         
+        # trying to remove multiple times is fine
+        self.item1.ratings.unrate(self.john)
+        self.assertEqual(self.item1.ratings.count(), 1)
+        
         # make sure the item2's rating is still intact
         self.assertEqual(self.item2.ratings.count(), 1)
         
