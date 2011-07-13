@@ -187,40 +187,80 @@ class RatingsTestCase(TestCase):
         self.assertEqual(rated_qs[1].score, 1.0)
     
     def test_ordering(self):
+        # item 1 has a cumulative score of 0
         rating1 = self.item1.ratings.rate(self.john, 1)
         rating2 = self.item1.ratings.rate(self.jane, -1)
+        
+        # item 2 has a score of 1
         rating3 = self.item2.ratings.rate(self.john, 1)
+
+        # item 3 has no ratings
+        self.item3 = self.rated_model.objects.create(name='item3')
         
+        # get a queryset of all items ordered by rating
         rated_qs = self.rated_model.ratings.all().order_by_rating()
-        self.assertQuerySetEqual(rated_qs, [self.item2, self.item1])
-        self.assertQuerySetEqual(rated_qs,
-            self.rated_model.ratings.order_by_rating()
-        )
         
+        # check that it is ordered as we expect, descending with nulls last
+        self.assertEqual(list(rated_qs), [self.item2, self.item1, self.item3])
+        
+        # check that it is equivalent to the model method
+        self.assertEqual(list(rated_qs), list(
+            self.rated_model.ratings.order_by_rating()
+        ))
+        
+        # check that passing in a queryset of all objects results in the same
+        # ordering as when it is queried without an inner queryset
+        alt_rated_qs = self.rated_model.ratings.all().order_by_rating(
+            queryset=self.rated_model.objects.all()
+        )
+        self.assertEqual(list(alt_rated_qs), list(rated_qs))
+        
+        # check that the scores are what we expect them to be
         self.assertEqual(rated_qs[0].score, 1)
         self.assertEqual(rated_qs[1].score, 0)
+        self.assertEqual(rated_qs[2].score, None)
         
-        item1_qs = self.rated_model._default_manager.filter(pk=self.item1.pk)
-        rated_qs = self.rated_model.ratings.all().order_by_rating(queryset=item1_qs)
-        self.assertQuerySetEqual(rated_qs, [self.item1])
+        # restrict the queryset to only contain item 1 and item 3
+        item13_qs = self.rated_model._default_manager.filter(pk__in=[
+            self.item1.pk, self.item3.pk
+        ])
+        
+        # get model ordered by rating restricted to our queryset
+        rated_qs = self.rated_model.ratings.all().order_by_rating(queryset=item13_qs)
+        
+        # should contain just the two items we're interested in
+        self.assertEqual(list(rated_qs), [self.item1, self.item3])
+        
+        # check that the model method results are what we expect
         self.assertQuerySetEqual(rated_qs,
-            self.rated_model.ratings.order_by_rating(queryset=item1_qs)
+            self.rated_model.ratings.order_by_rating(queryset=item13_qs)
         )
-        
+
+        # check that the scores are correct
         self.assertEqual(rated_qs[0].score, 0)
+        self.assertEqual(rated_qs[1].score, None)
         
+        # try ordering by score ascending -- should now be nulls first.  also
+        # use an alias for the aggregator
         rated_qs = self.rated_model.ratings.all().order_by_rating(descending=False, alias='sum_score')
-        self.assertQuerySetEqual(rated_qs, [self.item1, self.item2])
-        self.assertQuerySetEqual(rated_qs,
+        
+        # check that they're ordered correctly
+        self.assertEqual(list(rated_qs), [self.item3, self.item1, self.item2])
+        
+        # conforms to the other api
+        self.assertEqual(list(rated_qs), list(
             self.rated_model.ratings.order_by_rating(descending=False, alias='sum_score')
-        )
+        ))
         
-        self.assertEqual(rated_qs[0].sum_score, 0)
-        self.assertEqual(rated_qs[1].sum_score, 1)
+        # extra attributes are set correctly
+        self.assertEqual(rated_qs[0].sum_score, None)
+        self.assertEqual(rated_qs[1].sum_score, 0)
+        self.assertEqual(rated_qs[2].sum_score, 1)
         
+        # changing a rating results in different ordering (ths is just a sanity check)
         self.item1.ratings.rate(self.john, 3)
         rated_qs = self.rated_model.ratings.all().order_by_rating()
-        self.assertQuerySetEqual(rated_qs, [self.item1, self.item2])
+        self.assertEqual(list(rated_qs), [self.item1, self.item2, self.item3])
     
         self.assertEqual(rated_qs[0].score, 2)
         self.assertEqual(rated_qs[1].score, 1)
