@@ -80,3 +80,44 @@ from the tests:
 
 
 The API is exactly the same.
+
+
+URLs, Views, and Templates
+--------------------------
+
+The app comes configured with views for adding and removing ratings on content
+items.  These urls assume you have configured your ``ROOT_URLCONF`` like this::
+
+    urlpatterns = patterns('',
+        # ... urls ...
+        url(r'^ratings/', include('ratings.urls')),
+    )
+
+URLs to add and remove ratings look like this:
+
+* ``/ratings/rate/<content-type-id>/<object-id>/<score>/`` to add or update a rating
+* ``/ratings/unrate/<content-type-id>/<object-id>/`` to unrate an object
+
+The urls support floating point scores and non-integer primary keys.
+
+.. warning:: these views only accept POST requests.
+
+Using the template filter to generate urls
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+I'd recommend using the template filter to generate urls as it does the annoying
+lookups for you::
+
+    {% if not request.user|has_rated:object %}
+      <p>
+        <a href="{{ object|rate_url:1 }}">+1</a> or 
+        <a href="{{ object|rate_url:-1 }}">-1</a>
+      </p>
+    {% else %}
+      <p>You have rated this item {{ object|rating_score:request.user }}</p>
+      <p><a href="{{ object|unrate_url }}">Remove rating</a></p>
+    {% endif %}
+
+.. warning:: these URLs will not just work as-is because the views only accept
+    POST requests.  You'll need to use JavaScript to POST to those views or
+    make them the target of a <form> element.
