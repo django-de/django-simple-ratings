@@ -20,7 +20,7 @@ class RatedItemBase(models.Model):
         abstract = True
 
     def __unicode__(self):
-        return "%s rated %s by %s" % (self.content_object, self.score, self.user)
+        return u"%s rated %s by %s" % (self.content_object, self.score, self.user)
     
     def save(self, *args, **kwargs):
         self.hashed = self.generate_hash()
@@ -276,4 +276,4 @@ class SimilarItem(models.Model):
     objects = SimilarItemManager()
     
     def __unicode__(self):
-        return '%s (%s)' % (self.similar_object, self.score)
+        return u'%s (%s)' % (self.similar_object, self.score)

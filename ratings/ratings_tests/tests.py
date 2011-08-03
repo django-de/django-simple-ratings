@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-#
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
@@ -402,6 +403,11 @@ class RatingsTestCase(TestCase):
         
         self.assertEqual(self.item1.ratings.cumulative_score(), 1.0)
 
+    def test_rate_unicode(self):
+        self.john.username = u'Иван'
+        rating = self.item1.ratings.rate(self.john, 1)
+        rating_unicode_string = unicode(rating)
+
 
 class CustomModelRatingsTestCase(RatingsTestCase):
     rated_model = Beverage
@@ -518,3 +524,10 @@ class RecommendationsTestCase(TestCase):
         
         self.assertEqual(str(r2[0])[:5], '2.084')
         self.assertEqual(r2[1], self.food_e)
+
+    def test_rate_unicode(self):
+        self.food_b.name = u'яблоко'
+        self.food_b.save()
+        calculate_similar_items(RatedItem.objects.all(), 10)
+        top_for_food_a = self.food_a.ratings.similar_items()[0]
+        top_for_food_a_unicode_string = unicode(top_for_food_a)
