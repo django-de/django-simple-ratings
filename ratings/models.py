@@ -1,9 +1,8 @@
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericForeignKey
-from django.db import connection, models
+from django.db import models
 from django.db.models.query import QuerySet
-from django.template.defaultfilters import slugify
 from django.utils.hashcompat import sha_constructor
 
 from ratings.utils import get_content_object_field, is_gfk, recommended_items
