@@ -403,7 +403,7 @@ class RatingsTestCase(TestCase):
         
         self.assertEqual(self.item1.ratings.cumulative_score(), 1.0)
 
-    def test_rate_unicode(self):
+    def test_rated_item_model_unicode(self):
         self.john.username = u'Иван'
         rating = self.item1.ratings.rate(self.john, 1)
         rating_unicode_string = unicode(rating)
@@ -525,7 +525,7 @@ class RecommendationsTestCase(TestCase):
         self.assertEqual(str(r2[0])[:5], '2.084')
         self.assertEqual(r2[1], self.food_e)
 
-    def test_rate_unicode(self):
+    def test_similar_item_model_unicode(self):
         self.food_b.name = u'яблоко'
         self.food_b.save()
         calculate_similar_items(RatedItem.objects.all(), 10)
