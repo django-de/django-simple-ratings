@@ -1,9 +1,8 @@
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericForeignKey
-from django.db import connection, models
+from django.db import models
 from django.db.models.query import QuerySet
-from django.template.defaultfilters import slugify
 from django.utils.hashcompat import sha_constructor
 
 from ratings.utils import get_content_object_field, is_gfk, recommended_items
@@ -20,7 +19,7 @@ class RatedItemBase(models.Model):
         abstract = True
 
     def __unicode__(self):
-        return "%s rated %s by %s" % (self.content_object, self.score, self.user)
+        return u"%s rated %s by %s" % (self.content_object, self.score, self.user)
     
     def save(self, *args, **kwargs):
         self.hashed = self.generate_hash()
@@ -276,4 +275,4 @@ class SimilarItem(models.Model):
     objects = SimilarItemManager()
     
     def __unicode__(self):
-        return '%s (%s)' % (self.similar_object, self.score)
+        return u'%s (%s)' % (self.similar_object, self.score)

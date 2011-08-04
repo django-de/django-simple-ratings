@@ -1,7 +1,6 @@
-import datetime
 from optparse import make_option
 from django.conf import settings
-from django.core.management.base import AppCommand, CommandError
+from django.core.management.base import AppCommand
 
 from ratings.models import _RatingsDescriptor
 

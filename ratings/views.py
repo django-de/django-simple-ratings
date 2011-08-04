@@ -1,6 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed, Http404
 from django.shortcuts import get_object_or_404
 
 
