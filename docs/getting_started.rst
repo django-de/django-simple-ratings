@@ -54,6 +54,19 @@ specified manually.
     >>> Food.ratings.order_by_rating(aggregator=models.Avg)
     [<Food: apple>, <Food: orange>]
 
+If you want to see what a User's favorite objects were, you could filter
+the ratings by that user, then order by rating:
+
+.. code-block:: python
+
+    >>> johns_items = Food.ratings.filter(user=john).order_by_rating()
+    >>> johns_items
+    [<Food: orange>, <Food: apple>]
+    >>> johns_items[0].score # what did john rate orange?
+    3.0
+    >>> johns_items[1].score # what did john rate apple?
+    1.0
+
 
 Use GFKs, FKs, whatever
 -----------------------
@@ -117,7 +130,3 @@ lookups for you::
       <p>You have rated this item {{ object|rating_score:request.user }}</p>
       <p><a href="{{ object|unrate_url }}">Remove rating</a></p>
     {% endif %}
-
-.. warning:: these URLs will not just work as-is because the views only accept
-    POST requests.  You'll need to use JavaScript to POST to those views or
-    make them the target of a <form> element.
