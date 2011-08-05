@@ -265,6 +265,32 @@ class RatingsTestCase(TestCase):
     
         self.assertEqual(rated_qs[0].score, 2)
         self.assertEqual(rated_qs[1].score, 1)
+
+    def test_ordering_with_filter(self):
+        # item 1 has a cumulative score of 0
+        rating1 = self.item1.ratings.rate(self.john, 1)
+        rating2 = self.item1.ratings.rate(self.jane, -1)
+        
+        # item 2 has a score of 1
+        rating3 = self.item2.ratings.rate(self.john, 2)
+
+        # see what john has rated
+        rated_qs = self.rated_model.ratings.filter(user=self.john).order_by_rating()
+
+        self.assertEqual(list(rated_qs), [self.item2, self.item1])
+        r3, r1 = rated_qs
+        self.assertEqual(r3.score, 2.0)
+        self.assertEqual(r1.score, 1.0)
+
+        # change the rating and see it reflected in new query
+        self.item1.ratings.rate(self.john, 4)
+
+        rated_qs = self.rated_model.ratings.filter(user=self.john).order_by_rating()
+
+        self.assertEqual(list(rated_qs), [self.item1, self.item2])
+        r1, r3 = rated_qs
+        self.assertEqual(r1.score, 4.0)
+        self.assertEqual(r3.score, 2.0)
     
     def test_rating_score_filter(self):
         t = Template('{% load ratings_tags %}{{ obj|rating_score:user }}')
