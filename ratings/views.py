@@ -1,12 +1,19 @@
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed, Http404
 from django.shortcuts import get_object_or_404
 
 
+# allow GET requests to create ratings -- this goes against the "GET" requests
+# should be idempotent but avoids the necessity of using <form> elements or
+# javascript to create rating links
+ALLOW_GET = getattr(settings, 'RATINGS_ALLOW_GET', True)
+
+
 @login_required
 def rate_object(request, ct, pk, score=1, add=True):
-    if not request.method == 'POST':
+    if request.method != 'POST' and not ALLOW_GET:
         return HttpResponseNotAllowed('Invalid request method: "%s". Must be POST.' % request.method)
     
     ctype = get_object_or_404(ContentType, pk=ct)

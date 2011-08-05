@@ -8,6 +8,7 @@ from django.test import TestCase
 from ratings.models import RatedItem
 from ratings.ratings_tests.models import Food, Beverage, BeverageRating
 from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches, recommendations, calculate_similar_items, recommended_items
+from ratings import views as ratings_views
 
 
 class RatingsTestCase(TestCase):
@@ -24,6 +25,12 @@ class RatingsTestCase(TestCase):
         self.jane = User.objects.get(username='jane')
         
         self.related_name = self.rating_model.user.field.related_query_name()
+
+        self._orig_setting = ratings_views.ALLOW_GET
+        ratings_views.ALLOW_GET = False
+
+    def tearDown(self):
+        ratings_views.ALLOW_GET = self._orig_setting
 
     def _sort_by_pk(self, list_or_qs):
         # decorate, sort, undecorate using the pk of the items
@@ -367,7 +374,7 @@ class RatingsTestCase(TestCase):
         
         # log in
         self.client.login(username='a', password='a')
-        
+
         # hit the view with a GET
         resp = self.client.get(test_url)
         self.assertEqual(resp.status_code, 405) # bad method, yo
@@ -428,6 +435,19 @@ class RatingsTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         
         self.assertEqual(self.item1.ratings.cumulative_score(), 1.0)
+
+        # finally, test that we can hit it with a GET
+        ratings_views.ALLOW_GET = True
+
+        test_url = reverse('ratings_rate_object', args=(
+            ctype.pk,
+            self.item1.pk,
+            100.0,
+        ))
+        resp = self.client.get(test_url, {'next': '/'})
+        self.assertEqual(resp.status_code, 302)
+
+        self.assertEqual(self.item1.ratings.cumulative_score(), 102.5)
 
     def test_rated_item_model_unicode(self):
         self.john.username = u'Иван'
