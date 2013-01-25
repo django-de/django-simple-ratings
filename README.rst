@@ -25,7 +25,7 @@ Getting started
 you'd like to add ratings to some model::
 
     from django.db import models
-    from rating.models import Ratings
+    from ratings.models import Ratings
     
     class Food(models.Model):
         name = models.CharField(max_length=50)
