@@ -16,9 +16,10 @@ setup(
     author_email='coleifer@gmail.com',
     url='http://github.com/coleifer/django-simple-ratings/tree/master',
     packages=find_packages(),
-    package_data = {
+    package_data={
         'ratings': [
             'tests/fixtures/*.json',
+            'tests/templates/*.html',
         ],
     },
     install_requires=['django-generic-aggregation'],
