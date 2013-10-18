@@ -1,9 +1,10 @@
+import hashlib
+
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.db import models
 from django.db.models.query import QuerySet
-from django.utils.hashcompat import sha_constructor
 
 from ratings.utils import get_content_object_field, is_gfk, recommended_items
 
@@ -29,7 +30,7 @@ class RatedItemBase(models.Model):
         content_field = get_content_object_field(self)
         related_object = getattr(self, content_field.name)
         uniq = '%s.%s' % (related_object._meta, related_object.pk)
-        return sha_constructor(uniq).hexdigest()
+        return hashlib.sha1(uniq).hexdigest()
 
     @classmethod
     def lookup_kwargs(cls, instance):
