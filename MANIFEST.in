@@ -4,3 +4,4 @@ include README.rst
 include TODO.rst
 recursive-include ratings/tests/fixtures *.json
 recursive-include ratings/tests/templates *.html
+recursive-include docs *
