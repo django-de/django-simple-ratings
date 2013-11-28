@@ -1,20 +1,42 @@
+import ast
+import codecs
 import os
 from setuptools import setup, find_packages
 
-from ratings import VERSION
+here = os.path.abspath(os.path.dirname(__file__))
 
-f = open(os.path.join(os.path.dirname(__file__), 'README.rst'))
-readme = f.read()
-f.close()
+
+class VersionFinder(ast.NodeVisitor):
+    def __init__(self):
+        self.version = None
+
+    def visit_Assign(self, node):
+        if node.targets[0].id == '__version__':
+            self.version = node.value.s
+
+
+def read(*parts):
+    filename = os.path.join(os.path.dirname(__file__), *parts)
+    with codecs.open(filename, encoding='utf-8') as fp:
+        return fp.read()
+
+
+def find_version(*parts):
+    finder = VersionFinder()
+    finder.visit(ast.parse(read(*parts)))
+    return finder.version
+
 
 setup(
     name='django-simple-ratings',
-    version=".".join(map(str, VERSION)),
+    version=find_version('ratings', '__init__.py'),
     description='a simple, extensible rating system.',
-    long_description=readme,
+    long_description=read('README.rst'),
     author='Charles Leifer',
     author_email='coleifer@gmail.com',
-    url='http://github.com/coleifer/django-simple-ratings/tree/master',
+    maintainer='Deutscher Django Verein e. V.',
+    maintainer_email='kontakt@django-de.org',
+    url='http://github.com/django-de/django-simple-ratings/tree/master',
     packages=find_packages(),
     package_data={
         'ratings': [
