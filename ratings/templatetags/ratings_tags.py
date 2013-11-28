@@ -3,7 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
 
 register = template.Library()
-    
+
 
 @register.filter
 def rating_score(obj, user):
@@ -12,14 +12,15 @@ def rating_score(obj, user):
     """
     if not user.is_authenticated() or not hasattr(obj, '_ratings_field'):
         return False
-    
+
     ratings_descriptor = getattr(obj, obj._ratings_field)
     try:
         rating = ratings_descriptor.get(user=user).score
     except ratings_descriptor.model.DoesNotExist:
         rating = None
-    
+
     return rating
+
 
 @register.filter
 def has_rated(user, obj):
@@ -27,6 +28,7 @@ def has_rated(user, obj):
     Returns whether or not the user has rated the given object
     """
     return rating_score(obj, user) is not None
+
 
 @register.filter
 def rate_url(obj, score=1):
@@ -39,6 +41,7 @@ def rate_url(obj, score=1):
         obj.pk,
         score,
     ))
+
 
 @register.filter
 def unrate_url(obj):

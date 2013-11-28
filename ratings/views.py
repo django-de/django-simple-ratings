@@ -15,7 +15,8 @@ ALLOW_GET = getattr(settings, 'RATINGS_ALLOW_GET', True)
 @login_required
 def rate_object(request, ct, pk, score=1, add=True):
     if request.method != 'POST' and not ALLOW_GET:
-        return HttpResponseNotAllowed('Invalid request method: "%s". Must be POST.' % request.method)
+        return HttpResponseNotAllowed('Invalid request method: "%s". '
+                                      'Must be POST.' % request.method)
 
     ctype = get_object_or_404(ContentType, pk=ct)
     model_class = ctype.model_class()
@@ -36,6 +37,7 @@ def rate_object(request, ct, pk, score=1, add=True):
     if request.is_ajax():
         return HttpResponse('{"success": true}', mimetype='application/json')
     try:
-        return HttpResponseRedirect(request.REQUEST.get('next') or request.META.get('HTTP_REFERER'))
+        return HttpResponseRedirect(request.REQUEST.get('next') or
+                                    request.META.get('HTTP_REFERER'))
     except AttributeError:
         return HttpResponse()
