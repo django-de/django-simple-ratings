@@ -7,12 +7,12 @@ The goal of this project was to make it really simple to add ratings to models.
 
     from django.db import models
     from rating.models import Ratings
-    
+
     class Food(models.Model):
         name = models.CharField(max_length=50)
-        
+
         ratings = Ratings()
-        
+
 Now, you can add ratings to various models:
 
 .. code-block:: python
@@ -27,7 +27,7 @@ You can query a model instance and retrieve all the individual :class:`RatedItem
 instances connected to it:
 
 .. code-block:: python
-    
+
     >>> apple.ratings.all()
     [<RatedItem: apple rated 1 by john>, <RatedItem: apple rated 5 by jane>]
 
@@ -50,7 +50,7 @@ specified manually.
 
     >>> Food.ratings.order_by_rating()
     [<Food: apple>, <Food: orange>]
-    
+
     >>> Food.ratings.order_by_rating(aggregator=models.Avg)
     [<Food: apple>, <Food: orange>]
 
@@ -85,9 +85,9 @@ from the tests:
 
     class Beverage(models.Model):
         name = models.CharField(max_length=50)
-        
+
         ratings = Ratings(BeverageRating)
-        
+
         def __unicode__(self):
             return self.name
 
@@ -123,7 +123,7 @@ lookups for you::
 
     {% if not request.user|has_rated:object %}
       <p>
-        <a href="{{ object|rate_url:1 }}">+1</a> or 
+        <a href="{{ object|rate_url:1 }}">+1</a> or
         <a href="{{ object|rate_url:-1 }}">-1</a>
       </p>
     {% else %}

@@ -12,7 +12,7 @@ dependencies:
 With a little bit more
 ----------------------
 
-also, a playground for different stuff i've been reading about in 
+also, a playground for different stuff i've been reading about in
 *programming collective intelligence*, by toby segaran.
 
 this stuff lives in utils.py and is there if you want to experiment (or
@@ -26,12 +26,12 @@ you'd like to add ratings to some model::
 
     from django.db import models
     from ratings.models import Ratings
-    
+
     class Food(models.Model):
         name = models.CharField(max_length=50)
-        
+
         ratings = Ratings()
-        
+
 now, you can::
 
     # add ratings to things
@@ -40,7 +40,7 @@ now, you can::
 
     >>> apple.ratings.rate(user=jane, score=5)
     <RatedItem: apple rated 5 by jane>
-    
+
     # get interesting aggregate data
     >>> apple.ratings.all()
     [<RatedItem: apple rated 1 by john>, <RatedItem: apple rated 5 by jane>]
@@ -50,7 +50,7 @@ now, you can::
 
     >>> apple.ratings.average_score()
     3.0
-    
+
     # order things by their rating
     >>> Food.ratings.order_by_rating()
     [<Food: apple>, <Food: orange>]
@@ -71,9 +71,9 @@ from the tests::
 
     class Beverage(models.Model):
         name = models.CharField(max_length=50)
-        
+
         ratings = Ratings(BeverageRating)
-        
+
         def __unicode__(self):
             return self.name
 
