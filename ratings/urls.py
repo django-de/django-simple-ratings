@@ -1,5 +1,9 @@
-from django.conf.urls.defaults import *
-
+try:
+    # Django > 1.6
+    from django.conf.urls import patterns, url
+except ImportError:
+    # Django < 1.6
+    from django.conf.urls.defaults import patterns, url
 
 urlpatterns = patterns('ratings.views',
     url(r'^rate/(?P<ct>\d+)/(?P<pk>[^\/]+)/(?P<score>\-?[\d\.]+)/$', 'rate_object', name='ratings_rate_object'),
