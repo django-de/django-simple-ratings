@@ -16,7 +16,8 @@ if not settings.configured:
     settings.configure(
         DATABASES={
             'default': {
-                 'ENGINE': 'django.db.backends.sqlite3',
+                'ENGINE': db_engine,
+                'NAME': db_name,
             }
         },
         DATABASE_ENGINE = db_engine,

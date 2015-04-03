@@ -87,8 +87,9 @@ class RatingsQuerySet(QuerySet):
         if queryset is None:
             queryset = self.rated_model._default_manager.all()
 
+        ordering = descending and '-%s' % alias or alias
+
         if not is_gfk(related_field):
-            ordering = descending and '-%s' % alias or alias
             query_name = related_field.related_query_name()
 
             if len(self.query.where.children):
@@ -103,12 +104,11 @@ class RatingsQuerySet(QuerySet):
         else:
             return generic_annotate(
                 queryset,
-                related_field,
-                aggregator('score'),
                 self,
-                descending,
-                alias
-            )
+                aggregator('score'),
+                related_field,
+                alias=alias
+            ).order_by(ordering)
 
 
 class _RatingsDescriptor(models.Manager):
