@@ -517,6 +517,7 @@ class RatingsTestCase(TestCase):
         ))
         resp = self.client.post(test_url, {}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Content-Type'], 'application/json')
 
         self.assertEqual(self.item1.ratings.cumulative_score(), 2.5)
 

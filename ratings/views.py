@@ -35,7 +35,8 @@ def rate_object(request, ct, pk, score=1, add=True):
         ratings_descriptor.unrate(request.user)
 
     if request.is_ajax():
-        return HttpResponse('{"success": true}', mimetype='application/json')
+        return HttpResponse('{"success": true}',
+                            content_type='application/json')
     try:
         return HttpResponseRedirect(request.REQUEST.get('next') or
                                     request.META.get('HTTP_REFERER'))
