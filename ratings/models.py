@@ -1,4 +1,5 @@
 import hashlib
+import django
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -71,9 +72,13 @@ class Ratings(object):
 
 
 class RatingsQuerySet(QuerySet):
-    def __init__(self, model=None, query=None, using=None, rated_model=None):
+    def __init__(self, model=None, query=None, using=None, hints=None,
+                 rated_model=None):
         self.rated_model = rated_model
-        super(RatingsQuerySet, self).__init__(model, query, using)
+        if django.VERSION < (1, 7):
+            super(RatingsQuerySet, self).__init__(model, query, using)
+        else:
+            super(RatingsQuerySet, self).__init__(model, query, using, hints)
 
     def _clone(self, *args, **kwargs):
         instance = super(RatingsQuerySet, self)._clone(*args, **kwargs)

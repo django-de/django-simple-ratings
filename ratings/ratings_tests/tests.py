@@ -10,6 +10,7 @@ import unittest
 from ratings.models import RatedItem
 from ratings.ratings_tests.models import Food, Beverage, BeverageRating
 from ratings.utils import sim_euclidean_distance, sim_pearson_correlation, top_matches, recommendations, calculate_similar_items, recommended_items
+from ratings import utils as ratings_utils
 from ratings import views as ratings_views
 
 
@@ -695,3 +696,19 @@ class RecommendationsTestCase(TestCase):
         calculate_similar_items(RatedItem.objects.all(), 10)
         top_for_food_a = self.food_a.ratings.similar_items()[0]
         top_for_food_a_unicode_string = unicode(top_for_food_a)
+
+
+class QueryHasWhereTestCase(TestCase):
+    """
+    Actually, this function is probably misnamed. It tests if a query has *no*
+    where clause hence it returns the inverse of what the name might suggest.
+    """
+    def test_without_where_clause(self):
+        result = ratings_utils.query_has_where(
+            Food.objects.all().query)
+        self.assertTrue(result)
+
+    def test_with_where_clause(self):
+        result = ratings_utils.query_has_where(
+            Food.objects.filter(name='test').query)
+        self.assertFalse(result)
