@@ -1,0 +1,6 @@
+[run]
+source = ratings
+branch = True
+
+[report]
+omit = *tests*,*migrations*
