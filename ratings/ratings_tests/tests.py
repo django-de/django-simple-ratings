@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-#
+import django
+
 from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
@@ -573,7 +575,10 @@ class RatingsTestCase(TestCase):
         # if no redirect url is given, redirect to /
         resp = self.client.get(test_url)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, 'http://testserver/')
+        if django.VERSION < (1, 6):
+            self.assertEqual(resp['Location'], 'http://testserver/')
+        else:
+            self.assertEqual(resp.url, 'http://testserver/')
 
     def test_rated_item_model_unicode(self):
         self.john.username = u'Иван'
