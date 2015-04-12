@@ -1,7 +1,7 @@
 try:
-    # Django > 1.6
+    # Django >= 1.6
     from django.conf.urls import patterns, url
-except ImportError:
+except ImportError:  # pragma: no cover
     # Django < 1.6
     from django.conf.urls.defaults import patterns, url
 

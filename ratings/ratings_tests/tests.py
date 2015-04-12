@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-#
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
 from django.template import Template, Context
@@ -418,6 +418,12 @@ class RatingsTestCase(TestCase):
 
         self.item1.ratings.rate(self.john, 10)
         self.assertEqual(t.render(c), '10.0')
+
+    def test_rating_score_filter_logged_out(self):
+        t = Template('{% load ratings_tags %}{{ obj|rating_score:user }}')
+        anon = AnonymousUser()
+        logged_out_context = Context({'obj': self.item1, 'user': anon})
+        self.assertEqual(t.render(logged_out_context), 'False')
 
     def test_has_rated_filter(self):
         t = Template('{% load ratings_tags %}{{ user|has_rated:obj }}')

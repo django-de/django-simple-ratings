@@ -37,8 +37,5 @@ def rate_object(request, ct, pk, score=1, add=True):
     if request.is_ajax():
         return HttpResponse('{"success": true}',
                             content_type='application/json')
-    try:
-        return HttpResponseRedirect(request.REQUEST.get('next') or
-                                    request.META.get('HTTP_REFERER'))
-    except AttributeError:
-        return HttpResponse()
+    return HttpResponseRedirect(request.REQUEST.get('next') or
+                                request.META.get('HTTP_REFERER'))
