@@ -3,7 +3,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, \
     HttpResponseNotAllowed, Http404
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
+from django.utils.http import is_safe_url
 
 
 # allow GET requests to create ratings -- this goes against the "GET" requests
@@ -17,6 +19,12 @@ def rate_object(request, ct, pk, score=1, add=True):
     if request.method != 'POST' and not ALLOW_GET:
         return HttpResponseNotAllowed('Invalid request method: "%s". '
                                       'Must be POST.' % request.method)
+
+    redirect_url = request.REQUEST.get('next') or request.META.get('HTTP_REFERER')
+    if redirect_url and not is_safe_url(redirect_url):
+        return HttpResponseBadRequest("Invalid next URL.")
+    if not redirect_url:
+        redirect_url = '/'
 
     ctype = get_object_or_404(ContentType, pk=ct)
     model_class = ctype.model_class()
@@ -37,5 +45,4 @@ def rate_object(request, ct, pk, score=1, add=True):
     if request.is_ajax():
         return HttpResponse('{"success": true}',
                             content_type='application/json')
-    return HttpResponseRedirect(request.REQUEST.get('next') or
-                                request.META.get('HTTP_REFERER'))
+    return HttpResponseRedirect(redirect_url)
