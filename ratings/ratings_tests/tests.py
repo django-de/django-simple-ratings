@@ -560,10 +560,20 @@ class RatingsTestCase(TestCase):
             self.item1.pk,
             100.0,
         ))
+
+        # hit the endpoint with a not safe next url
+        resp = self.client.get(test_url, {'next': 'http://externalurl.com/'})
+        self.assertEqual(resp.status_code, 400)
+
         resp = self.client.get(test_url, {'next': '/'})
         self.assertEqual(resp.status_code, 302)
 
         self.assertEqual(self.item1.ratings.cumulative_score(), 102.5)
+
+        # if no redirect url is given, redirect to /
+        resp = self.client.get(test_url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, 'http://testserver/')
 
     def test_rated_item_model_unicode(self):
         self.john.username = u'Иван'
